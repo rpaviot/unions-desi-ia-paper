@@ -86,7 +86,11 @@ def main():
                     help="explicit path to the fit npz (default: "
                          "<dest>/ggl/csmf_fit/csmf_fit_<label>_minuit.npz)")
     ap.add_argument("--config", default=str(gu.CONFIG))
+    ap.add_argument("--method", default=METHOD, choices=["minuit", "nautilus", "de"],
+                    help="minuit / de: band from the parameter covariance; nautilus: band "
+                         "from the posterior samples")
     args = ap.parse_args()
+    method = args.method
 
     cfg = gu.load_config(args.config)
     dest = Path(cfg["dest"])
@@ -98,14 +102,14 @@ def main():
 
     # This work
     fit_npz = (Path(args.fit_npz) if args.fit_npz
-               else dest / "ggl" / "csmf_fit" / f"csmf_fit_{args.label}_{METHOD}.npz")
-    y, lo, hi, pb = load_curve(fit_npz, METHOD, logMh, n_mc, rng)
+               else dest / "ggl" / "csmf_fit" / f"csmf_fit_{args.label}_{method}.npz")
+    y, lo, hi, pb = load_curve(fit_npz, method, logMh, n_mc, rng)
     ax.fill_betweenx(logMh, lo, hi, color="C0", alpha=0.25, lw=0)
     ax.plot(y, logMh, "C0", lw=1.8,
             label="This work (BGS)" + (", close-pair" if args.pip else ""))
 
     if args.pip:
-        yq, loq, hiq, _ = load_curve(Path(args.pip), METHOD, logMh, n_mc,
+        yq, loq, hiq, _ = load_curve(Path(args.pip), method, logMh, n_mc,
                                      np.random.default_rng(43))
         ax.fill_betweenx(logMh, loq, hiq, color="C4", alpha=0.25, lw=0)
         ax.plot(yq, logMh, color="C4", ls=":", lw=1.8,

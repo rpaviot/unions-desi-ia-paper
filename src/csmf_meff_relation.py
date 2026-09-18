@@ -41,16 +41,20 @@ def main():
                    help="legacy form: csmf-input subdir under <dest>/ggl (fit_csmf --in-name)")
     p.add_argument("--samples", nargs="+", default=["BGS_RED_GMM_VLIM_SNR"],
                    help="lens samples of the fit")
+    p.add_argument("--method", default=None, choices=["minuit", "nautilus", "de"],
+                   help="point estimate to evaluate M_eff at (default: whichever the npz "
+                        "carries; nautilus = the posterior median)")
     p.add_argument("--out", required=True, help="output npz")
     args = p.parse_args()
 
     cfg = gu.load_config(args.config)
     rel_x, rel_y = label_relation(cfg, None, args.samples, in_name=args.in_name,
-                                  fit_npz=args.fit_npz, in_dir=args.in_dir)
+                                  fit_npz=args.fit_npz, in_dir=args.in_dir, method=args.method)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     np.savez(out, rel_logmstar=rel_x, rel_logmeff=rel_y,
              fit_npz=str(args.fit_npz), in_dir=str(args.in_dir or args.in_name or ""),
+             method=str(args.method or "auto"),
              samples=np.array(args.samples))
     print(f"wrote {out}  ({len(rel_x)} nodes)")
 

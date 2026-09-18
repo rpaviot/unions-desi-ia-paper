@@ -36,7 +36,9 @@ def main():
     p.add_argument("--label", default=None,
                    help="fit label (locates <dest>/ggl/csmf_fit/csmf_fit_<label>_<method>.npz "
                         "unless --fit-npz is given)")
-    p.add_argument("--method", default="minuit", choices=["minuit", "de"])
+    p.add_argument("--method", default="minuit", choices=["minuit", "de", "nautilus"],
+                   help="which point estimate of the fit npz to decompose (nautilus: the "
+                        "posterior median, fit_csmf's nautilus_* keys)")
     p.add_argument("--samples", nargs="+", default=["BGS_RED_GMM_VLIM_SNR"])
     p.add_argument("--rp-min", type=float, default=None,
                    help="[Mpc/h] scale cut the fit was run with (default: config)")

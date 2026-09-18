@@ -70,7 +70,9 @@ def p99_relation(cfg):
 
     fit = np.load(dest / "ggl" / "csmf_fit"
                   / "csmf_fit_vlim_ngalc_rmin05_bnl12_p99_minuit.npz", allow_pickle=True)
-    bf = {str(n): float(v) for n, v in zip(fit["minuit_param_names"], fit["minuit_best_fit"])}
+    m = fit_method(fit, method)
+    bf = {str(n): float(v) for n, v in zip(fit[f"{m}_param_names"], fit[f"{m}_best_fit"])}
+    print(f"[{label}] point estimate: {m}" + (" (posterior median)" if m == "nautilus" else ""))
     fitter._halo_model.set_hod_params({k: bf[k] for k in CSMF_KEYS})
     fitter._halo_model.update_f(f_h=bf.get("f_h", bf.get("f_c", 1.0)), f_s=bf.get("f_s", 1.0))
 
@@ -84,7 +86,20 @@ def p99_relation(cfg):
     return logmed, logMeff
 
 
-def label_relation(cfg, label, samples, in_name=None, fit_npz=None, in_dir=None):
+def fit_method(fit, method=None):
+    """Which point estimate a fit npz carries: 'minuit' / 'nautilus' / 'de' (fit_csmf.py
+    keys <method>_param_names / <method>_best_fit); auto-detected in that order."""
+    if method:
+        if f"{method}_best_fit" not in fit:
+            raise KeyError(f"fit has no {method}_best_fit")
+        return method
+    for m in ("minuit", "nautilus", "de"):
+        if f"{m}_best_fit" in fit:
+            return m
+    raise KeyError("fit npz has no minuit_/nautilus_/de_ best fit")
+
+
+def label_relation(cfg, label, samples, in_name=None, fit_npz=None, in_dir=None, method=None):
     """(logM*_med, logMeff) from any saved CSMF minuit fit (fit_csmf label, or an
     explicit ``fit_npz`` path with the csmf-input directory ``in_dir`` it was run on).
 

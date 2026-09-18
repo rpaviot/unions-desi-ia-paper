@@ -1,0 +1,14 @@
+# The paper's choices everywhere, with the CSMF fit sampled by nautilus instead of MINUIT.
+id: csmf_nautilus
+description: "Baseline with the CSMF halo-model fit run through the nautilus nested sampler"
+decisions:
+  ngal_zwindow: z5
+  ngal_area: effective
+  aia_mass_fit_space: linear
+analyses:
+  samples: { universe: baseline }
+  ia_measurements: { universe: baseline }
+  ggl: { universe: baseline }
+  csmf: { universe: nautilus }
+  ia_fits: { universe: baseline }
+  paper: { universe: baseline }

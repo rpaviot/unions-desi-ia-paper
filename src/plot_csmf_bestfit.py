@@ -42,7 +42,8 @@ def main():
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--config", default=str(gu.CONFIG))
     p.add_argument("--label", default="bgs_vlim", help="fit label (default: bgs_vlim)")
-    p.add_argument("--method", default="minuit", choices=["minuit", "de"])
+    p.add_argument("--method", default="minuit", choices=["minuit", "de", "nautilus"],
+                   help="which point estimate to draw (nautilus: the posterior median)")
     p.add_argument("--samples", nargs="+", default=None,
                    help="Samples to rebuild (must match the fit; default: all in config)")
     p.add_argument("--rp-min", type=float, default=None, help="[Mpc/h]; default from config")

@@ -150,6 +150,45 @@ def build_fitter(cfg, args):
     return fitter
 
 
+def nautilus_summary(fitter):
+    """Point-estimate keys for a nautilus run, in the layout of the minuit ones
+    (``nautilus_param_names / _best_fit / _errors / _covariance / _chi2 / _ndof``) so the
+    downstream scripts (--method nautilus) can re-evaluate the model at one point.
+
+    best_fit = the weighted posterior MEDIAN of each parameter (what the IA fits quote);
+    errors = half the 16-84 % interval; covariance = the weighted sample covariance;
+    chi2 = -2 log L + 2 x prior penalty AT THE MEDIAN (the minuit convention, so
+    decompose_csmf_chi2 reproduces it); nautilus_map = the max-log L sample; ndof = Delta
+    Sigma points after the scale cut - free parameters (the fitter's minuit convention)."""
+    res = fitter.results
+    names = [str(n) for n in res["param_names"]]
+    pts = np.asarray(res["points"], float)
+    logw = np.asarray(res["log_w"], float)
+    w = np.exp(logw - logw.max())
+    w /= w.sum()
+
+    def wq(x, q):
+        i = np.argsort(x)
+        c = np.cumsum(w[i])
+        return float(np.interp(q, c, x[i]))
+
+    med = np.array([wq(pts[:, j], 0.5) for j in range(len(names))])
+    lo = np.array([wq(pts[:, j], 0.16) for j in range(len(names))])
+    hi = np.array([wq(pts[:, j], 0.84) for j in range(len(names))])
+    cov = np.cov(pts, rowvar=False, aweights=w)
+    free = {n: float(v) for n, v in zip(names, med)}
+    chi2 = -2.0 * float(fitter.log_likelihood(free)) + 2.0 * float(fitter._compute_prior_penalty(free))
+    npts = sum(int(fitter._apply_scale_cuts(mb)[3].sum()) for mb in fitter.mass_bins)
+    print(f"\n[nautilus] posterior medians: {free}\n"
+          f"[nautilus] chi2 at the median = {chi2:.2f} for ndof = {npts - len(names)}  "
+          f"(log Z = {float(res['log_z']):.2f})", flush=True)
+    return {"nautilus_param_names": np.array(names, dtype=str), "nautilus_best_fit": med,
+            "nautilus_errors": 0.5 * (hi - lo), "nautilus_lo16": lo, "nautilus_hi84": hi,
+            "nautilus_covariance": cov, "nautilus_chi2": chi2,
+            "nautilus_ndof": npts - len(names),
+            "nautilus_map": pts[int(np.argmax(np.asarray(res["log_l"], float)))]}
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -219,6 +258,10 @@ def main():
                         "existing csmf_fit_*.npz (reads minuit_best_fit/minuit_param_names). "
                         "Cold-start minuit rails to a bad low-M1 basin on the VLIM-S/N samples; "
                         "seeding from a good SHMR recovers χ²/dof≈1. See csmf-snr-fit-coldstart.")
+    p.add_argument("--passes", type=int, default=1,
+                   help="minuit only: number of seeded Migrad passes. Pass i > 1 starts from "
+                        "pass i-1's best fit (the paper's two-pass recipe); the intermediate "
+                        "results are saved as <out stem>_pass{i}.npz. Ignored by de / nautilus.")
     p.add_argument("--label", default=None,
                    help="Tag inserted into the default output filename, e.g. 'bgs' or "
                         "'bgs_lrg', to keep multi-sample runs from clobbering each other")
@@ -266,8 +309,15 @@ def main():
                             zip(d["minuit_param_names"], d["minuit_best_fit"])}
             print(f"[seed] minuit start_params from {args.start_from}:\n"
                   f"       {start_params}", flush=True)
-        res = fitter.minimize(run_hesse=True, start_params=start_params)
-        res.print_summary()
+        for i in range(1, max(1, args.passes) + 1):
+            res = fitter.minimize(run_hesse=True, start_params=start_params)
+            res.print_summary()
+            if i < args.passes:
+                out_i = Path(args.out).with_name(Path(args.out).stem + f"_pass{i}.npz")
+                fitter.save_results(str(out_i))
+                start_params = {k: float(res.best_fit[k]) for k in res.param_names}
+                print(f"[pass {i}/{args.passes}] saved {out_i}; re-seeding pass {i + 1} "
+                      f"from its best fit", flush=True)
     elif args.method == "nautilus":
         fitter.run(n_live=args.n_live, n_eff=args.n_eff, seed=args.seed,
                    filepath=args.out + ".h5", vectorized=args.vectorized)
@@ -279,6 +329,8 @@ def main():
     hm = fitter._halo_model
     extra = {"mass_definition": getattr(hm, "_mass_def_name", "MassDef200c"),
              "halo_model_kwargs": np.array(fitter.halo_model_kwargs, dtype=object)}
+    if args.method == "nautilus":
+        extra.update(nautilus_summary(fitter))
     d = dict(np.load(args.out, allow_pickle=True))
     d.update(extra)
     np.savez(args.out, **d)
