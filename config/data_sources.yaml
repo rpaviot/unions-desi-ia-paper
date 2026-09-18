@@ -1,0 +1,664 @@
+# Declarative manifest of external catalogues for the UNIONS x DESI IA analysis.
+#
+# This is the single source of truth for raw-data acquisition. `scripts/fetch_desi.py`
+# expands it into a flat list of (url -> local path) download targets, fetches them
+# with resume + size verification, and writes a provenance manifest next to the data.
+#
+# Re-running is idempotent: files already present with the correct byte size are skipped.
+
+# Root of the data layer. Released snapshots are committed under data/; the large
+# products (DESI download, catalogues, UNIONS parquet, IA samples) are symlinks to the
+# cluster copies (scripts/link_cluster_data.sh) and dangle elsewhere.
+dest: data                # project-relative mirror; cluster copies are symlinked in by scripts/link_cluster_data.sh
+
+# Politeness / robustness knobs for the downloader.
+workers: 4            # parallel downloads (keep modest to be kind to the servers)
+retries: 5            # curl --retry per file
+
+sources:
+
+  # --------------------------------------------------------------------------
+  # DESI DR1 LSS clustering catalogues (Iron, v1.5, "normal" weights -- NOT pip).
+  # Hosted on the PIC webdav mirror. Sizes resolved via WebDAV PROPFIND.
+  # --------------------------------------------------------------------------
+  desi_lss:
+    base_url: https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5
+    subdir: desi/dr1/LSS/iron/v1.5      # local layout mirrors the release
+    size_method: propfind
+
+    tracers: [BGS_ANY, LRG, ELG_LOPnotqso]
+    caps: [NGC, SGC]
+    random_indices: [0, 1, 2, 3, 4, 5, 6, 7]   # ~>10x galaxy density after splits
+
+    # File templates. {tracer}/{cap}/{i} are substituted; "per" controls expansion.
+    patterns:
+      - name: clustering_data
+        template: "{tracer}_{cap}_clustering.dat.fits"
+        per: [tracer, cap]
+      - name: full_data            # provides colours/morphology; NOT cap-split
+        template: "{tracer}_full.dat.fits"
+        per: [tracer]
+      - name: clustering_random
+        template: "{tracer}_{cap}_{i}_clustering.ran.fits"
+        per: [tracer, cap, i]
+
+  # --------------------------------------------------------------------------
+  # DESI DR1 LSS COMBINED LRG+ELG_LOPnotqso clustering catalogue (Iron, v1.5).
+  # Same PIC webdav release as desi_lss, but kept a SEPARATE source block because:
+  #   (1) it is clustering-only -- there is no LRG+ELG_LOPnotqso_full.dat.fits, so
+  #       the full_data pattern must NOT be applied to it;
+  #   (2) the literal '+' in the tracer name fetches fine (verified: GET returns the
+  #       FITS, HEAD does not -- sizes resolved via PROPFIND like desi_lss).
+  # Purpose: a clustering-z REFERENCE tracer for the LRG/ELG 0.8-1.1 overlap. Its
+  # randoms encode the UNION (LRG OR ELG) selection function, which cannot be
+  # reconstructed by concatenating the separate LRG + ELG randoms ourselves.
+  # 4 random files (~13 GB) is ample: after the UNIONS-overlap footprint cut and a
+  # dz=0.05 slice the reference random pool dwarfs eta_rand x data.
+  desi_lss_combined:
+    base_url: https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5
+    subdir: desi/dr1/LSS/iron/v1.5      # same local layout as desi_lss
+    size_method: propfind
+
+    tracers: ["LRG+ELG_LOPnotqso"]
+    caps: [NGC, SGC]
+    random_indices: [0, 1, 2, 3]
+    patterns:
+      - name: clustering_data
+        template: "{tracer}_{cap}_clustering.dat.fits"
+        per: [tracer, cap]
+      - name: clustering_random
+        template: "{tracer}_{cap}_{i}_clustering.ran.fits"
+        per: [tracer, cap, i]
+
+  # --------------------------------------------------------------------------
+  # FastSpecFit DR1 VAC (Iron, v3.0) -- stellar masses (LOGMSTAR) keyed by TARGETID.
+  # main-bright -> BGS; main-dark -> LRG/ELG. HEALPix nside=1, 12 files each.
+  # Hosted at NERSC/LBL. Sizes resolved via HTTP HEAD. A .sha256sum manifest is
+  # published alongside and fetched for optional integrity checking.
+  # --------------------------------------------------------------------------
+  fastspec:
+    base_url: https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs
+    subdir: desi/dr1/fastspecfit/iron/v3.0
+    size_method: head
+    sha256sum: dr1_vac_dr1_fastspecfit_iron_v3.0_catalogs.sha256sum
+
+    programs: [bright, dark]          # bright=BGS, dark=LRG/ELG
+    healpix: [hp00, hp01, hp02, hp03, hp04, hp05, hp06, hp07, hp08, hp09, hp10, hp11]
+    patterns:
+      - name: fastspec
+        template: "fastspec-iron-main-{program}-nside1-{hp}.fits"
+        per: [program, hp]
+
+
+# ============================================================================
+# Catalogue build (scripts/build_catalogues.py): assemble analysis-ready
+# per-tracer catalogues from the raw downloads. clustering.dat (positions/z/
+# weights) <- full.dat (colours, by TARGETID) <- fastspec (stellar mass, by
+# TARGETID, concatenated over the 12 nside=1 healpix files of the program).
+# BGS additionally gets red/blue splits (GMM colour + sSFR). Nothing here is run
+# automatically -- it is launched via the SLURM batch script after review.
+# ============================================================================
+catalogue_build:
+  out_subdir: catalogues          # under <dest>; analysis-ready parquet lands here
+
+  # tracer -> (LSS clustering basename prefix, fastspec program)
+  tracers:
+    BGS_ANY:       {fastspec_program: bright, splits: true}
+    LRG:           {fastspec_program: dark,   splits: false}
+    ELG_LOPnotqso: {fastspec_program: dark,   splits: false}
+
+  caps: [NGC, SGC]
+  random_indices: [0, 1, 2, 3, 4, 5, 6, 7]
+
+  # Columns pulled from each raw catalogue (intersected with what's actually present).
+  clustering_columns: [TARGETID, RA, DEC, Z, WEIGHT, WEIGHT_FKP, WEIGHT_COMP,
+                       WEIGHT_SYS, WEIGHT_ZFAIL, NTILE, PHOTSYS, NX,
+                       FRAC_TLOBS_TILES]
+  # full.dat -> colours/morphology. Kept broad so lens-magnification work later has
+  # everything it needs (fluxes, fiber fluxes, sizes, morphology, mask bits).
+  full_columns: [TARGETID, FLUX_G, FLUX_R, FLUX_Z, FLUX_W1,
+                 FIBERFLUX_G, FIBERFLUX_R, FIBERFLUX_Z,
+                 MW_TRANSMISSION_G, MW_TRANSMISSION_R, MW_TRANSMISSION_Z, MW_TRANSMISSION_W1,
+                 SHAPE_R, MORPHTYPE, MASKBITS]
+  # Dereddened AB magnitudes (mag = 22.5 - 2.5 log10(FLUX/MW_TRANSMISSION)) and the
+  # g-r colour are precomputed into the catalogue so downstream code (colour plots,
+  # red/blue splits, magnification) never re-derives extinction.
+  dered_bands: [G, R, Z, W1]
+  # In FastSpecFit v3.0 the derived stellar properties live in the SPECPHOT HDU
+  # (the old single-file release had them in HDU 1 / 'FASTSPEC').
+  fastspec_ext: SPECPHOT
+  fastspec_columns: [TARGETID, VDISP, VDISP_IVAR, AGE, AGE_IVAR, ZZSUN, ZZSUN_IVAR,
+                     LOGMSTAR, LOGMSTAR_IVAR, SFR, SFR_IVAR,
+                     ABSMAG01_SDSS_R, ABSMAG01_IVAR_SDSS_R,
+                     ABSMAG01_SDSS_Z, ABSMAG01_IVAR_SDSS_Z]
+
+  # BGS red/blue split parameters.
+  gmm:
+    n_components: 3
+    z_bins: [0.01, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5]  # slices for sequence fit
+    sigma_cut: 2.0
+    random_state: 42
+  ssfr_threshold: 1.0e-11        # yr^-1; sSFR <= threshold -> red
+
+
+# ============================================================================
+# UNIONS ShapePipe weak-lensing shape catalogue (scripts/build_unions_shape.py).
+# Downsample the 215 GB ugriz hdf5 (644M rows, single compound dataset 'data') in
+# one streaming pass into two reduced parquet samples:
+#   * for_IA  -- minimal columns for shape calibration; DEC>=22 cut; NO quality cut
+#               (matched to DESI downstream, so we keep the full footprint).
+#   * for_GGL -- shear-quality selection (size ratio / mag / snr) + the extra columns
+#               needed for response recomputation, DES binned weights and PSF leakage.
+# Metacalibration responsivity is recomputed per object from the metacal ladder
+# (R = (e_1P - e_1M)/(2*dg)); e1_uncal/e2_uncal are the NOSHEAR ellipticities.
+# Calibration itself (global weighted response, PSF leakage) is applied AFTER cuts,
+# downstream -- see CosmoStat/sp_validation; not done here.
+# ============================================================================
+unions_shape:
+  # DR6 photo-z update (2026-07-07): mkilbing refilled the ugriz GAAP photometry and
+  # re-ran BPZ -> new Z_B/Z_B_MIN/Z_B_MAX/T_B AND a new ODDS quality column (absent
+  # before). Same 644,507,262 rows, same shear columns (snr/w_iv match the old for_GGL
+  # to <0.5%); only photo-z/photometry changed. The old struc_ugriz ..c.2.hdf5 we built
+  # from was overwritten. 390 GB (was ~215 GB -- ugriz GAAP mags added ~67 fields).
+  hdf5: /n17data/UNIONS/WL/v1.6.x/unions_shapepipe_comprehensive_struc_ugriz_2024_v1.6.c.DR6.hdf5
+  dataset: data
+  dataset_ext: data_ext          # parallel dataset (same rows): mask/veto bit flags
+  out_subdir: unions             # under <dest>; reduced parquet lands here
+  chunk_rows: 5000000            # streaming read chunk (one pass over 644M rows)
+  metacal_dg: 0.01              # metacal shear step; R_g = (e_1P - e_1M)/(2*dg)
+
+  samples:
+    # ---- IA sample: 7 columns, DEC>=22, no quality filter ------------------
+    IA:
+      out: unions_shape_for_IA.parquet
+      dec_min: 22.0
+      # output_name: source_field  (R_g11/R_g22 are derived from the metacal ladder)
+      columns:
+        RA: RA
+        DEC: Dec
+        WEIGHT: w_iv
+        e1_uncal: e1_uncal
+        e2_uncal: e2_uncal
+      derived: [R_g11, R_g22]
+
+    # ---- GGL/shear sample: quality cut + extended columns ------------------
+    GGL:
+      out: unions_shape_for_GGL.parquet
+      dec_min: 22.0                # same footprint cut as IA, applied on top of cond1
+      # cond1 thresholds (size ratio = NGMIX_T_NOSHEAR / NGMIX_Tpsf_NOSHEAR):
+      size_ratio_min: 0.5
+      size_ratio_max: 3.0
+      mag_win_min: 20.0
+      snr_min: 10.0
+      snr_max: 200.0
+      columns:
+        RA: RA
+        DEC: Dec
+        WEIGHT: w_iv
+        e1_uncal: e1_uncal
+        e2_uncal: e2_uncal
+        snr: snr
+        MAG_WIN: MAG_WIN
+        NGMIX_T_NOSHEAR: NGMIX_T_NOSHEAR        # size + cond1
+        NGMIX_Tpsf_NOSHEAR: NGMIX_Tpsf_NOSHEAR  # PSF size + cond1
+        e1_PSF: e1_PSF                            # PSF leakage
+        e2_PSF: e2_PSF
+        fwhm_PSF: fwhm_PSF
+        Z_B: Z_B                                 # photo-z point estimate (tomography)
+        Z_B_MIN: Z_B_MIN                          # BPZ 1-sigma confidence interval:
+        Z_B_MAX: Z_B_MAX                          #   width = Z_B_MAX - Z_B_MIN gates
+                                                  #   poorly-constrained photo-z (n(z) noise)
+        T_B: T_B                                  # BPZ template type (carried for later cuts)
+        ODDS: ODDS                                # BPZ photo-z reliability (P mass in +/-0.06(1+z));
+                                                  #   new in DR6 -- higher = cleaner photo-z, cut lever
+      derived: [R_g11, R_g22]
+      # ShapePipe/UNIONS mask bit-planes from data_ext. Boolean; True = masked, so a
+      # clean shear sample vetoes objects with ANY of these set (applied downstream).
+      # Numeric prefix = bitmask value. NB: not documented in the hdf5 itself -- these
+      # are inferred from ShapePipe naming; confirm with the producer (M. Kilbinger).
+      ext_columns:
+        - "1_Faint_star_halos"     # bit 1   : halo regions around faint stars
+        - "2_Bright_star_halos"    # bit 2   : halo/diffraction-spike regions, bright stars
+        - "4_Stars"                # bit 4   : star masks (saturated / point sources)
+        - "8_Manual"               # bit 8   : hand-defined mask regions
+        - "64_r"                   # bit 64  : r-band-specific mask (border / missing data)
+        - "1024_Maximask"          # bit 1024: Maximask CNN artefacts (cosmic rays, trails)
+      # NOT a veto flag: uint16 count (0-5, ~99% >=1), likely overlap/pointing
+      # multiplicity. Carried for reference, kept out of the veto group.
+      ext_extra: ["npoint3"]
+
+
+# ============================================================================
+# IA sample construction (scripts/build_ia_samples.py): cross-match the
+# analysis-ready DESI catalogues against the UNIONS for_IA shape sample to build
+# the position-shape (IA) samples. For each (sample, redshift bin):
+#   1. z-cut the DESI data + randoms;
+#   2. footprint-mask both to the UNIONS overlap (healpix nside, occupied pixels);
+#   3. 1" sky-match DESI galaxies to their UNIONS shape (astropy);
+#   4. per-sample weighted-responsivity calibration  e = e_uncal / <w (R11+R22)/2>;
+#   5. equipopulated LOGMSTAR bins (floor + 1-99 pct outer edges) where requested.
+# Randoms are NOT synthesised: we take the DESI randoms restricted to the overlap
+# footprint and redshift bin (capped at randoms_factor x data), shared across a
+# tracer's splits and mass bins. Outputs land under <dest>/<out_subdir>.
+# ============================================================================
+ia_samples:
+  out_subdir: ia                       # under <dest>; matched IA samples land here
+  cat_subdir: catalogues               # where build_catalogues.py wrote the parquet
+  unions_for_ia: unions/unions_shape_for_IA.parquet   # under <dest>
+
+  match_sep_arcsec: 1.0                # DESI <-> UNIONS sky-match radius
+  footprint_nside: 8192                # healpix res for footprint mask + spatial prefilter
+  mass_column: LOGMSTAR
+  mass_floor: 0.0                      # no hard floor; mass_pct trims the tails (1/99 pct)
+  mass_pct: [1.0, 99.0]                # outer bin edges at these percentiles; equipop within
+
+  # equal-S/N mass binning (shape samples with `bin_scheme: equal_snr`; red only).
+  # Target N per bin ~ 10^(-2*beta*(logM_med - break)) so every bin carries the same
+  # expected A_IA significance under a two-regime A_IA(M*) prior (flat faint regime +
+  # steep bright tail, Fortuna+21). beta_faint=0 -> exactly equal-N below the break.
+  # Design choice, not a model assumption: a mis-set break/beta costs S/N uniformity
+  # across bins, never bias. Per-sample overrides: snr_* keys on the shape sample.
+  snr_logm_break: 11.0                 # knee of the A_IA(M*) prior [log10 Msun]
+  snr_beta_faint: 0.0                  # slope below the knee (flat)
+  snr_beta_bright: 0.5                 # slope above the knee (~L^1.2 via the red-seq L-M*)
+  snr_n_min: 30000                     # per-bin floor (jackknife stability)
+  mass_pct_snr: [1.0, 99.9]            # relaxed upper clip: keep the bright tail
+  randoms_factor: 20                   # cap clustering randoms at N x data (downsample, never recreate)
+  shape_randoms_factor: 20             # shape randoms per shape sample = N x its size (positions drawn
+                                       # from the tracer randoms footprint, n(z)+weight from the shapes)
+
+  # Sample structure: ONE clustering catalogue + ONE randoms per TRACER define the
+  # density field (and the single jackknife patch-centre tessellation). The colour /
+  # mass shape samples are matched subsets of that tracer's galaxies -- they are
+  # SHAPE-only samples (positions + ellipticities) that reuse the tracer's clustering,
+  # randoms and patch centres, and each gets its own shape randoms. zbins are a
+  # property of the tracer and apply to every shape sample under it.
+
+  # Imaging-systematics weights, recomputed for the BGS tracer only (set per tracer
+  # via `systematics: true`). In DR1 the official WEIGHT_SYS was derived for the bright
+  # BGS selection only -- here it is 1 (folded into WEIGHT), so we recompute it via
+  # sysweights.py: a RidgeCV regression of galaxy density contrast vs the imaging maps,
+  # fit N/S separately over the full DESI footprint AFTER the z-cut. The fit is done
+  # ONCE on the tracer clustering catalogue (BGS_ANY) vs its randoms, then applied as a
+  # per-pixel WEIGHT_SYS to (a) the clustering data, (b) the randoms, and (c) every
+  # shape sample matched from it -- WEIGHT_CORR = WEIGHT * WEIGHT_SYS. This would
+  # double-count for LRG/ELG, which keep DESI's official weights, so it is BGS-only.
+  systematics:
+    map_dir: hpmaps                    # under <dest>; holds the DESI hpmaps FITS
+    map_template: "BGS_ANY_mapprops_healpix_nested_nside256_{cap}.fits"  # {cap} -> N / S
+    map_nside: 256
+    map_names: [STARDENS, HI, GALDEPTH_R, PSFSIZE_R, PSFDEPTH_W1, GALDEPTH_G]
+    n_bins: 20
+    bin_method: percentile
+    ridge_alpha_range: [1.0e-3, 1.0e3]
+    n_alphas: 50
+    floor_frac: 0.001
+    reproduce_randoms: true            # rebuild randoms via DESI methodology (resample z, FKP)
+    p0: 7000                           # FKP P0 used when rebuilding BGS randoms
+
+  # One entry per tracer. `clustering`/`randoms` are the density catalogue + randoms;
+  # `shape_samples` are the colour / mass subsamples matched to UNIONS shapes. Mass
+  # bins are equipopulated within each z-bin; n_mass_bins: null means no mass split.
+  tracers:
+    - name: BGS
+      clustering: BGS_ANY_clustering.dat.parquet
+      randoms: BGS_ANY_clustering.ran.parquet
+      zbins: [[0.1, 0.5]]
+      systematics: true
+      shape_samples:
+        # full (uncut) BGS shape sample kept FIRST so the correlations process it first
+        # (the headline sample; with --auto-resume it lands before the colour/mass splits).
+        # It draws shape-randoms RNG first, so its parquet stays byte-identical regardless
+        # of changes to the colour splits on a partial --tracers BGS rebuild.
+        - {name: BGS_ANY,      data: BGS_ANY_clustering.dat.parquet,      n_mass_bins: null}
+        # 12 bins + n_min 20k -> 8 equal-N faint bins + 4 above logM*=11 (dry-run 2026-07-02)
+        - {name: BGS_RED_GMM,  data: BGS_RED_GMM_clustering.dat.parquet,  n_mass_bins: 12, bin_scheme: equal_snr, snr_n_min: 20000}
+        - {name: BGS_BLUE_GMM, data: BGS_BLUE_GMM_clustering.dat.parquet, n_mass_bins: 2}
+        # SFR red split deprioritized 2026-07-02: full sample kept, no mass bins.
+        - {name: BGS_RED_SFR,  data: BGS_RED_SFR_clustering.dat.parquet,  n_mass_bins: null}
+        - {name: BGS_BLUE_SFR, data: BGS_BLUE_SFR_clustering.dat.parquet, n_mass_bins: 2}
+    - name: LRG
+      clustering: LRG_clustering.dat.parquet
+      randoms: LRG_clustering.ran.parquet
+      zbins: [[0.4, 0.75], [0.75, 1.1]]
+      shape_samples:
+        - {name: LRG, data: LRG_clustering.dat.parquet, n_mass_bins: 5, bin_scheme: equal_snr}
+    - name: ELG
+      clustering: ELG_LOPnotqso_clustering.dat.parquet
+      randoms: ELG_LOPnotqso_clustering.ran.parquet
+      zbins: [[0.8, 1.6]]
+      shape_samples:
+        - {name: ELG_LOPnotqso, data: ELG_LOPnotqso_clustering.dat.parquet, n_mass_bins: null}
+
+
+# ============================================================================
+# Combined LRG+ELG clustering-z REFERENCE (scripts/build_combined_reference.py).
+# The DESI DR1 combined LRG+ELG_LOPnotqso clustering catalogue (downloaded by the
+# desi_lss_combined source block) is clustering-only and its randoms encode the
+# UNION selection function. This step z-cuts it to the LRG/ELG overlap, footprint-
+# cuts it to the UNIONS for_IA overlap, caps the randoms, and writes the
+# {stem}_{clustering,randoms}.parquet pair under out_subdir that estimate_nz reads
+# as a reference tracer (via that tracer's `subdir`) -- letting a single dense
+# reference replace the inverse-variance combination of the separate LRG + ELG
+# references in the overlap. It lives under ggl/ (not ia/) because it is used
+# ONLY for the n(z), never for clustering, so it must survive build_ia_samples --clean.
+# ============================================================================
+combined_reference:
+  lss_subdir: desi/dr1/LSS/iron/v1.5            # under <dest>; the downloaded FITS
+  tracer: "LRG+ELG_LOPnotqso"
+  caps: [NGC, SGC]
+  random_indices: [0, 1, 2, 3]                  # the 4 random files we fetched
+  out_subdir: ggl/reference                     # n(z)-only reference; kept OUT of ia/ so
+                                                # `build_ia_samples --clean` cannot wipe it
+  stem: LRGpELG                                 # -> LRGpELG_zmin_0.80_zmax_1.10_*
+  z_range: [0.80, 1.10]                         # the LRG/ELG overlap range
+  footprint_nside: 8192                         # same UNIONS footprint res as ia_samples
+  unions_for_ia: unions/unions_shape_for_IA.parquet
+  randoms_factor: 20                            # cap randoms at N x data
+
+# ============================================================================
+# Galaxy-galaxy lensing (Delta Sigma) pipeline:
+#   scripts/compute_magnification.py -- magnification-bias alphas per lens mass bin
+#   scripts/estimate_nz.py           -- clustering-redshift n(z) of the source bins
+#   scripts/compute_deltasigma.py    -- dsigma stacking + jackknife covariance
+# LENSES are the existing IA mass-bin samples under <dest>/ia/ (built by
+# build_ia_samples.py); they are reused directly, no new sample building. Lens
+# data weight = WEIGHT_CLUSTERING (the matched lens density weight: WEIGHT_CORR
+# for BGS, DESI WEIGHT for LRG); lens randoms = the matching shape_randoms
+# parquets, weight = WEIGHT. SOURCES are the UNIONS for_GGL shear sample, cut
+# into one tomographic photo-z (Z_B) bin per lens family; their redshifts enter
+# Delta Sigma only through the clustering-z n(z) (dsigma `table_n`), never per
+# object. Per tomographic bin the source calibration order is: (1) responsivity
+# e = e_uncal / <w (R_g11+R_g22)/2>, then (2) two-pass PSF leakage correction
+# e_corr = e - alpha(SNR, size_ratio) * e_PSF.
+# ============================================================================
+ggl:
+  out_subdir: ggl                  # under <dest>; alphas, n(z) and Delta Sigma land here
+  ia_subdir: ia                    # where build_ia_samples.py wrote the lens samples
+  cat_subdir: catalogues           # analysis-ready per-tracer parquet (fluxes for alphas)
+  source_catalogue: unions/unions_shape_for_GGL.parquet   # under <dest>
+
+  # ShapePipe veto bit-planes carried on the for_GGL parquet (True = masked).
+  # A clean shear source drops rows with ANY of these set.
+  source_veto_columns: ["1_Faint_star_halos", "2_Bright_star_halos", "4_Stars",
+                        "8_Manual", "64_r", "1024_Maximask"]
+
+  # Two-pass PSF leakage correction (Li et al. 2024): equipopulated bins in
+  # (size_ratio, SNR), per-bin WLS fit e_i = alpha*e_PSF_i + c, smooth polynomial
+  # trend in (SNR^-2, SNR^-3, size_ratio), then residual per-bin second pass.
+  psf_leakage:
+    n_bins: 20                     # bins per dimension (n_bins^2 groups)
+
+  # Lens samples: the IA mass-bin shape catalogues. `catalogue` is the per-tracer
+  # parquet under cat_subdir carrying the fluxes/morphology used by the alphas;
+  # `selection` picks the photometric target-selection cuts to perturb
+  # (BGS_ANY = DESI BGS bright+faint, LRG = Zhou et al. 2022 N/S cuts).
+  lens_samples:
+    - {name: BGS_RED_GMM, zmin: 0.10, zmax: 0.50, n_mass_bins: 10,
+       catalogue: BGS_RED_GMM_clustering.dat.parquet, selection: BGS_ANY, source_bin: bgs}
+    - {name: BGS_RED_SFR, zmin: 0.10, zmax: 0.50, n_mass_bins: 10,
+       catalogue: BGS_RED_SFR_clustering.dat.parquet, selection: BGS_ANY, source_bin: bgs}
+    - {name: LRG,         zmin: 0.40, zmax: 0.75, n_mass_bins: 4,
+       catalogue: LRG_clustering.dat.parquet,         selection: LRG,     source_bin: lrg}
+    # Volume-limited (stellar-mass-complete) re-binning of BGS_RED_GMM for the SHMR/CSMF
+    # fit (built by build_vlim_samples.py: 8 equal-N Wright+17 staircase boxes). Same
+    # source_bin/selection as the parent; magnification stays off (BGS-negligible). The
+    # per-bin shape parquets already carry the volume-limit z-cut, so ΔΣ runs unchanged.
+    - {name: BGS_RED_GMM_VLIM, zmin: 0.10, zmax: 0.50, n_mass_bins: 8,
+       catalogue: BGS_RED_GMM_clustering.dat.parquet, selection: BGS_ANY, source_bin: bgs}
+    # S/N variant of the volume-limited sample (build_vlim_samples.py,
+    # bin_scheme: equal_snr): smooth geometric thinning (2x first/last),
+    # capped at logM*=11.40.
+    - {name: BGS_RED_GMM_VLIM_SNR, zmin: 0.10, zmax: 0.50, n_mass_bins: 10,
+       catalogue: BGS_RED_GMM_clustering.dat.parquet, selection: BGS_ANY, source_bin: bgs}
+    # Low-z LRG S/N variant (same smooth geometric scheme, floor 11.0, 6 bins).
+    - {name: LRG_VLIM_SNR, zmin: 0.40, zmax: 0.75, n_mass_bins: 6,
+       catalogue: LRG_clustering.dat.parquet, selection: LRG, source_bin: lrg}
+
+  # Photo-z quality gate on the source catalogue, applied in read_source_bin
+  # BEFORE the tomographic Z_B cut. Drops sources whose BPZ confidence interval
+  # is too wide (width = Z_B_MAX - Z_B_MIN), i.e. poorly-constrained photo-z that
+  # smear the clustering-z n(z). null = no cut (carry all sources). Tune this
+  # empirically against the width distribution; re-running estimate_nz is cheap.
+  source_zb_width_max: null          # e.g. 0.2 to keep only width <= 0.2 sources
+
+  # Photo-z reliability gate (DR6 BPZ ODDS column), applied in read_source_bin
+  # BEFORE the tomographic Z_B cut. ODDS = posterior probability mass within
+  # Z_B +/- 0.06(1+z); ODDS -> 1 is a tight single-peaked PDF, low ODDS means a
+  # broad/multimodal (unreliable) photo-z. Keeps sources with ODDS >= this.
+  # null = no cut. Better-motivated than the width gate above (integrates the
+  # actual PDF mass rather than just the 68% interval edges). --odds-min overrides.
+  source_odds_min: null              # e.g. 0.5 to keep only ODDS >= 0.5 sources
+
+  # Source tomographic bins (photo-z Z_B cuts on the for_GGL sample). The 1.25
+  # cap trims the poorly-constrained high-z tail (was 1.35; the reference n(z)
+  # coverage and the bin photo-z get unreliable approaching it).
+  source_bins:
+    bgs: {z_min: 0.70, z_max: 1.25}    # behind the BGS z=[0.10,0.50] lenses
+    lrg: {z_min: 0.95, z_max: 1.25}    # behind the LRG z=[0.40,0.75] lenses
+    # diagnostic only (not a lens source bin): fully inside the LRG 0.4-1.1
+    # coverage, run with --tracers LRG to test the n(z) without the LRG/ELG
+    # inverse-variance combination
+    nzcheck: {z_min: 0.65, z_max: 0.90}
+
+  # Magnification-bias alphas (finite-difference flux perturbation): per kappa
+  # step the total mags get -2.5 log10(1+2k), the fiber fluxes a profile-dependent
+  # (2 - dlnF/dlntheta(SHAPE_R)) * k factor, and log M* a +log10(1+2k) shift; the
+  # selection (photometric cuts AND the bin's [min,max] LOGMSTAR window) is
+  # re-applied at +/-kappa and alpha = dlnN/dkappa / 2 from a linear fit.
+  magnification:
+    kappa_step: 0.002
+    n_kappa: 11                    # kappas = step * [0 .. n-1]; fit over the steps
+    fiber_radius_arcsec: 0.75      # DESI fiber aperture
+    bgs_use_exp_profile: false     # false = De Vaucouleurs (legacy default)
+    weight_column: WEIGHT_CLUSTERING   # lens density weight from the bin parquet
+
+  # Clustering-redshift n(z): cross-correlate each source bin against DESI
+  # spectroscopic reference slices (the footprint-matched IA clustering +
+  # randoms parquets). Per dz slice: treecorr NN w_ru(theta) with
+  # ref-random-based estimator, scale-weighted integral over theta; reference
+  # bias from the slice auto-correlation w_xx and a CCL dark-matter prediction
+  # w_dm(z): n(z) propto w_ru / (b * w_dm). LRG and ELG overlap on z=[0.8,1.1];
+  # per-tracer n(z) are computed independently there and combined by inverse
+  # variance (and both kept in the output for comparison).
+  nz:
+    delta_z: 0.05
+    theta_min_arcmin: 1.0          # --scale-mode theta: fixed angular range
+    theta_max_arcmin: 10.0
+    rp_min_mpc: 1.5                # --scale-mode rp: fixed comoving range,
+    rp_max_mpc: 5.0                # converted to theta at each slice centre
+    n_theta: 10
+    alpha_weight: 0                # W(theta) = theta^alpha scale weighting
+    n_patches: 100                 # treecorr jackknife patches (from the source bin)
+    eta_rand: 10                   # randoms per reference galaxy in each slice
+    bin_slop: 0.01
+    # Reference tracers: stems of the IA-dir clustering/randoms parquets to
+    # concatenate, and the z range they slice.
+    # Non-overlapping partition: LRG below the overlap, the COMBINED LRG+ELG
+    # reference (built by build_combined_reference.py) inside the 0.8-1.1 overlap,
+    # ELG above it. No z-range overlaps => no inverse-variance combination; each
+    # slice uses a single dense, self-consistently-randomed reference. (The old
+    # IV-combined LRG[0.40,1.10]+ELG[0.80,1.60] config is preserved as the
+    # nz_*_theta_ivbaseline.npz files for comparison.)
+    reference_tracers:
+      - {name: LRG, z_range: [0.40, 0.80],
+         stems: [LRG_zmin_0.40_zmax_0.75, LRG_zmin_0.75_zmax_1.10]}
+      - {name: LRGpELG, z_range: [0.80, 1.10], subdir: ggl/reference,
+         stems: [LRGpELG_zmin_0.80_zmax_1.10]}
+      - {name: ELG, z_range: [1.10, 1.60],
+         stems: [ELG_zmin_0.80_zmax_1.60]}
+    # CCL cosmology for the w_dm(z) bias correction (Planck 2018).
+    cosmology: {h: 0.6766, omega_c_h2: 0.11933, omega_b_h2: 0.02242,
+                A_s: 2.105209331337507e-09, n_s: 0.9665}
+
+  # dsigma stacking: comoving rp bins in h^-1 Mpc, sigma_crit^-2 pair weighting,
+  # random subtraction, jackknife covariance.
+  dsigma:
+    rp_min: 0.06
+    rp_max: 60.0
+    n_rp_bins: 14                  # geomspace edges = n+1
+    n_jackknife: 100
+    n_jobs: 20                     # keep <= the slurm --cpus-per-task
+    # Per-source-bin n_jobs override. precompute forks n_jobs long-lived workers;
+    # under strict no-overcommit (vm.overcommit_memory=2) each fork reserves
+    # commit ~ the parent VM (dominated by the float64 source engine arrays), so
+    # the big bgs bin (~41M sources) OOMs at n_jobs=20 while lrg (~13.6M) fits.
+    # Fewer workers -> less concurrent commit. Tune down further if it still OOMs.
+    n_jobs_by_source:
+      bgs: 8
+      lrg: 20
+    # Source n(z): which estimate_nz output to feed dsigma's table_n.
+    nz_mode: rp                    # nz_<bin>_<mode>.npz  (rp = the baseline; theta also available)
+    nz_smooth_sigma: 1.0           # light Gaussian smoothing of n(z) in grid cells (dz=0.05);
+                                   # 0 = off. Applied, THEN negatives clipped to 0, THEN renormalised.
+    # Lens-magnification bias TEMPLATE (dsigma.stacking.lens_magnification_bias).
+    # dsigma scales the bias as 2*(alpha_l - 1), so alpha_l=2.0 gives the UNIT
+    # template (prefactor (alpha_l-1)=1). We save this template separately and
+    # NEVER subtract it here; the real correction is later
+    #   ds_mag(alpha) = (alpha_real - 1) * ds_mag_unit
+    # with alpha_real from ggl/magnification_alphas.csv -- so it can be rescaled
+    # or dropped at will. (Matches old_codes' alpha_l=2.0 default.)
+    alpha_l_template: 2.0
+    mag_sigma_8: 0.8102            # Planck 2018, for the magnification P(k)
+    mag_n_s: 0.9665
+
+# =============================================================================
+# CSMF halo-model modelling of the Delta Sigma profiles
+#   scripts/build_csmf_input.py   -- bridge measured ΔΣ npz -> fitter inputs
+#   scripts/fit_csmf.py           -- fit the analytical CSMF HOD
+#   scripts/run_csmf_fit.slurm    -- build inputs + DE + Nautilus on a node
+#
+# Fits the analytical Conditional Stellar Mass Function HOD
+# (HOD_NRV.HOD_analytical.sampler.CSMFFitter, develop branch, in the NRV venv
+# /home/rpaviot/NRV_HOD/.venv_hod) to the measured ΔΣ(r_p): one profile per
+# (sample, mass bin) at its own z_eff and stellar-mass window, jointly
+# constraining the stellar-to-halo mass relation of the red lenses.
+#
+# build_csmf_input.py maps <dest>/ggl/deltasigma/<stem>_massbin{i}_deltasigma.npz
+# onto the per-bin npz the fitter loads, and subtracts the lens-magnification
+# contribution on the DATA side (matches the old-code approach):
+#     ΔΣ_corr(rp) = ΔΣ(rp) - (alpha - 1) * ds_mag_unit(rp)
+# with alpha per (sample, massbin) from ggl/magnification_alphas.csv and
+# ds_mag_unit the unit (alpha_l=2.0) template stored by compute_deltasigma.py.
+# Both red samples are corrected identically; the corrected ΔΣ is written as the
+# fitter's `delta_sigma`, so the package's own LRG magnification path is unused
+# (no `mag_contribution` key written) and there is no double subtraction.
+#
+# Units: ΔΣ is in h=1 units (rp in Mpc/h, ΔΣ in Msun h/pc^2) -> units_per_h=True.
+# Cosmology: HOD_NRV DEFAULT_COSMO_PARAMS (Planck18), matching the measurement.
+# =============================================================================
+csmf:
+  in_subdir: ggl/deltasigma_dr6    # under <dest>; the measured ΔΣ npz live here (DR6 photo-z run)
+  out_subdir: ggl/csmf_input       # under <dest>; per-bin fitter inputs land here
+  alphas_csv: ggl/magnification_alphas.csv
+  subtract_magnification: true     # ΔΣ_corr = ΔΣ - (alpha-1)*ds_mag_unit
+                                   # (auto-skipped per-bin if ds_mag_unit is NaN)
+                                   # Global default; overridable per sample below.
+  rp_min: 0.1                      # Mpc/h  (drops the dsigma bins below 0.1)
+  rp_max: 60.0                     # Mpc/h
+  # Galaxy number-density (abundance) anchor: add a Gaussian n_gal chi^2 per mass
+  # bin (model halo_model.ngal() vs the measured n_gal in the csmf_input npz, both
+  # h^3/Mpc^3). This is the abundance lever Dvornik+23 use to pin the SHMR
+  # normalization/high-mass slope (gamma2) that DeltaSigma alone leaves degenerate.
+  # n_gal is measured by compute_ngal.py (volume-limited samples only -- it's a
+  # clean density only for VLIM). CLI --fit-ngal/--no-fit-ngal overrides this.
+  fit_ngal: true
+  # Gaussian prior on gamma1 (low-mass SHMR slope). DeltaSigma alone doesn't
+  # constrain it for bins at/above the SHMR knee; Dvornik+23 pin it via galaxy
+  # abundance (which we don't fit), so we adopt a Gaussian centred on their best
+  # fit (7.096). Tune `std` to Dvornik's quoted uncertainty. Remove this key (or
+  # pass --gamma1-flat) to restore the flat [2.5,15] default.
+  gamma1_prior: {mean: 7.096, std: 2.0}
+  include_beta_nl: true            # β^NL non-linear-bias correction (emulator)
+  beta_nl:                         # passed to CSMFFitter(beta_nl_kwargs=...)
+    n_k: 100
+    n_mass: 20
+    k_min: 0.01
+    k_max: 10.0
+    log_M_min: 11.5
+    log_M_max: 15.0
+    method: linear
+    bias_method: halo-halo
+  # One entry per measured lens sample. `stem` is the deltasigma filename prefix
+  # (gu.lens_stem without the trailing _massbin{i}); `selection` picks the
+  # CSMFFitter sample type (GMM/SFR -> BGS path, LRG -> LRG path).
+  # `subtract_magnification` (optional) overrides the global default per sample:
+  # BGS magnification is negligible -> off; LRG matters -> on.
+  samples:
+    - {name: BGS_RED_GMM, stem: "BGS_RED_GMM_zmin_0.10_zmax_0.50_shapes", selection: GMM, n_mass_bins: 10, subtract_magnification: false}
+    - {name: LRG,         stem: "LRG_zmin_0.40_zmax_0.75_shapes",         selection: LRG, n_mass_bins: 4,  subtract_magnification: true}
+    # Volume-limited BGS_RED_GMM (8 equal-N Wright+17 staircase boxes) -- the
+    # stellar-mass-COMPLETE sample the SHMR is calibrated on (the "model route").
+    - {name: BGS_RED_GMM_VLIM, stem: "BGS_RED_GMM_VLIM_zmin_0.10_zmax_0.50_shapes", selection: GMM, n_mass_bins: 8, subtract_magnification: false}
+    - {name: BGS_RED_GMM_VLIM_SNR, stem: "BGS_RED_GMM_VLIM_SNR_zmin_0.10_zmax_0.50_shapes", selection: GMM, n_mass_bins: 10, subtract_magnification: false}
+    - {name: LRG_VLIM_SNR, stem: "LRG_VLIM_SNR_zmin_0.40_zmax_0.75_shapes", selection: LRG, n_mass_bins: 6, subtract_magnification: true}
+
+# =============================================================================
+# Volume-limited (stellar-mass-COMPLETE) lens samples for the SHMR/CSMF fit.
+# build_vlim_samples.py re-bins the existing full RED shape sample (already
+# UNIONS-matched + calibrated by build_ia_samples.py) into `n_mass_bins` equal-N
+# "staircase" boxes [M*_lo,M*_hi) x [zmin, z_max], z_max = min(z_lim(M*_lo), zmax),
+# with z_lim(M*) from the Wright+17 turn-over curve (compute_mstar_completeness.py).
+# Every galaxy in a box is above the completeness limit -> volume-complete (cf.
+# Dvornik+23 Fig.1). It reuses build_ia_samples' calibrate / write_shapes_parquet /
+# build_shape_randoms, so the outputs match compute_deltasigma's naming exactly:
+#   <name>_zmin_<zmin>_zmax_<zmax>_shapes_massbin{i}.parquet  (+ _shape_randoms_)
+# These calibrate the SHMR only; the flux-limited IA deciles are untouched (the
+# halo masses are later painted onto them from the best-fit model -- the model route).
+# =============================================================================
+vlim_samples:
+  out_subdir: ia                      # under <dest>; bin parquets land beside the IA samples
+  completeness_subdir: ggl/completeness
+  shape_randoms_factor: 20            # randoms per bin = N x bin size (matches ia_samples)
+  p0: 7000                            # FKP P0 for the random reconstruction (FKP itself dropped)
+  seed: 42
+  samples:
+    - name: BGS_RED_GMM_VLIM          # output lens-sample name (-> stem via zmin/zmax)
+      source: BGS_RED_GMM             # the full RED shape sample to re-bin (<source>_..._shapes.parquet)
+      tracer: BGS                     # footprint randoms tag (<tracer>_zmin_..._randoms.parquet)
+      source_zmin: 0.10
+      source_zmax: 0.50
+      completeness: BGS_RED_GMM_mstar_completeness.npz
+      floor: 10.0                     # faint-end M* floor (below it no usable volume-limited box)
+      n_mass_bins: 8                  # equal-N staircase boxes
+    # S/N variant (final form, 2026-07-05 user decisions): same staircase
+    # completeness constraint; SMOOTH Dvornik-style bins with per-bin counts
+    # decreasing GEOMETRICALLY, first/last = snr_count_ratio (the fit-driving
+    # signal ~ linear bias x growth is much flatter than the 1-halo Mh^(2/3)
+    # proxy, so the spread is pinned empirically at <= 2); hard bright cap at
+    # snr_mass_max; the overall scale is tuned so the LAST bin also lands on its
+    # target (no capacity-limited remainder box). Multiple bins across the 10.x
+    # decade; the equal-N BGS_RED_GMM_VLIM sample is kept alongside.
+    - name: BGS_RED_GMM_VLIM_SNR
+      source: BGS_RED_GMM
+      tracer: BGS
+      source_zmin: 0.10
+      source_zmax: 0.50
+      completeness: BGS_RED_GMM_mstar_completeness.npz
+      floor: 10.0
+      n_mass_bins: 10
+      bin_scheme: equal_snr
+      snr_nz: nz_bgs_rp.npz           # source n(z) for the Sigma_crit^-2 forecast weight (under <dest>/ggl/nz)
+      snr_fit: csmf_fit_vlim_ngalc_rmin05_bnl12_p99_minuit.npz  # SHMR (only used if snr_count_ratio unset)
+      snr_count_ratio: 2.0            # N_first/N_last; geometric thinning (bias-x-growth-flat signal)
+      snr_mass_max: 11.40             # hard bright-end cap (not worth going above ~11.32-11.40)
+      snr_n_min: 5000                 # per-bin galaxy floor (jackknife stability)
+      snr_mass_pct_hi: 99.9           # tail-clip percentile (snr_mass_max binds first here)
+    # Same smooth S/N scheme for the low-z LRG lenses (2026-07-05, user request).
+    # Floor 11.0 keeps ~95% of the shapes; the completeness staircase never binds
+    # for M*>=10.65 within z<0.75 (z_lim saturates at 0.85), so every box spans
+    # the full lens range. No hard cap: the LRG bright tail is kept to p99.9.
+    - name: LRG_VLIM_SNR
+      source: LRG
+      tracer: LRG
+      source_zmin: 0.40
+      source_zmax: 0.75
+      completeness: LRG_mstar_completeness.npz
+      floor: 11.0
+      n_mass_bins: 6
+      bin_scheme: equal_snr
+      snr_nz: nz_lrg_rp.npz           # lrg source n(z) (forecast weight only)
+      snr_fit: csmf_fit_vlim_ngalc_rmin05_bnl12_p99_minuit.npz  # unused in ratio mode
+      snr_count_ratio: 2.0
+      snr_n_min: 5000
+      snr_mass_pct_hi: 99.9           # top edge ~11.85

@@ -1,0 +1,13 @@
+{
+  "n_raw": 414759,
+  "sum_w": 907954.5924872753,
+  "n_eff": 375079.47375784215,
+  "sigma_e": 0.29853489501550345,
+  "z_eff": 1.1519660842277355,
+  "logmstar_median": 9.43145751953125,
+  "logmstar_std": 0.6513893249966719,
+  "r_mean": 0.7188,
+  "r_mean_source": "build_log",
+  "sample": "ELG_LOPnotqso_zmin_0.80_zmax_1.60",
+  "parquet": "/n09data/rpaviot/DESIxUnions/ia/ELG_LOPnotqso_zmin_0.80_zmax_1.60_shapes.parquet"
+}

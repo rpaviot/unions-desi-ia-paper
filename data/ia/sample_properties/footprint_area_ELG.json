@@ -1,0 +1,31 @@
+{
+  "area_deg2": 1254.5513,
+  "area_sr": 0.382158179996061,
+  "per_cap": {
+    "NGC": {
+      "n_kept": 22563604,
+      "n_files": 8,
+      "area_deg2": 1128.1802
+    },
+    "SGC": {
+      "n_kept": 2527422,
+      "n_files": 8,
+      "area_deg2": 126.3711
+    }
+  },
+  "n_randoms_total": 118469970,
+  "n_randoms_kept": 25091026,
+  "random_density_per_file_deg2": 2500.0,
+  "healpix_scan_deg2": {
+    "256": 2351.2811470590837,
+    "512": 2203.985112324524,
+    "1024": 2065.5836231347216,
+    "2048": 1794.9778119928528,
+    "4096": 1431.7335304210758,
+    "8192": 826.4119425874686
+  },
+  "footprint_nside": 8192,
+  "tracer": "ELG",
+  "randoms_parquet": "/n09data/rpaviot/DESIxUnions/catalogues/ELG_LOPnotqso_clustering.ran.parquet",
+  "unions_for_ia": "/n09data/rpaviot/DESIxUnions/unions/unions_shape_for_IA.parquet"
+}

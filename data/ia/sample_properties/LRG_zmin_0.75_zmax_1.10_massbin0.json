@@ -1,0 +1,13 @@
+{
+  "n_raw": 58721,
+  "sum_w": 150956.91321320838,
+  "n_eff": 56363.83227402317,
+  "sigma_e": 0.2449584806601415,
+  "z_eff": 0.867203296961471,
+  "logmstar_median": 10.95174789428711,
+  "logmstar_std": 0.07375974384526608,
+  "r_mean": 0.6948613,
+  "r_mean_source": "parquet",
+  "sample": "LRG_zmin_0.75_zmax_1.10_massbin0",
+  "parquet": "/n09data/rpaviot/DESIxUnions/ia/LRG_zmin_0.75_zmax_1.10_shapes_massbin0.parquet"
+}

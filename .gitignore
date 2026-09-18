@@ -14,3 +14,11 @@ results/
 
 # MyST build output
 _build/
+
+# cluster-only data links (scripts/link_cluster_data.sh); the released snapshots stay tracked
+data/desi
+data/catalogues
+data/hpmaps
+data/unions
+data/ggl/reference
+data/ia/*.parquet

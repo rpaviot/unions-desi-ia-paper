@@ -1,0 +1,13 @@
+{
+  "n_raw": 201811,
+  "sum_w": 818178.3900989979,
+  "n_eff": 201183.36378701215,
+  "sigma_e": 0.2395704801894375,
+  "z_eff": 0.2120945564795557,
+  "logmstar_median": 9.921140670776367,
+  "logmstar_std": 0.3482263736663399,
+  "r_mean": 0.93038666,
+  "r_mean_source": "parquet",
+  "sample": "BGS_BLUE_SFR_zmin_0.10_zmax_0.50_massbin0",
+  "parquet": "/n09data/rpaviot/DESIxUnions/ia/BGS_BLUE_SFR_zmin_0.10_zmax_0.50_shapes_massbin0.parquet"
+}
