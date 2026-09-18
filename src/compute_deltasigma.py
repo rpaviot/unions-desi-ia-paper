@@ -127,7 +127,8 @@ def load_nz_table(nz_dir, bin_name, mode, smooth_sigma):
     return t, f
 
 
-def process(job, table_s, table_n, nz_file, dsc, out_dir, n_jobs_override=None):
+def process(job, table_s, table_n, nz_file, dsc, out_dir, n_jobs_override=None,
+            jk_seed=None):
     """One (sample, mass bin): precompute, stack, jackknife, save."""
     rp_bins = np.geomspace(float(dsc["rp_min"]), float(dsc["rp_max"]),
                            int(dsc["n_rp_bins"]) + 1)
@@ -190,7 +191,7 @@ def process(job, table_s, table_n, nz_file, dsc, out_dir, n_jobs_override=None):
         ds_mag_unit = np.full(int(dsc["n_rp_bins"]), np.nan)
 
     print(f"  jackknife covariance ({n_jk} regions)...", flush=True)
-    centers = compute_jackknife_fields(table_l, n_jk)
+    centers = compute_jackknife_fields(table_l, n_jk, seed=jk_seed)
     compute_jackknife_fields(table_r, centers)
     cov = jackknife_resampling(excess_surface_density, table_l, **kwargs)
 
@@ -279,13 +280,27 @@ def main() -> int:
                          ".npz (default 'deltasigma'). Point at a separate name to "
                          "recompute (e.g. on a new n(z)) without overwriting an "
                          "existing set.")
+    ap.add_argument("--out-dir", default=None,
+                    help="Explicit output directory (wins over --out-name).")
+    ap.add_argument("--nz-dir", default=None,
+                    help="Directory of the clustering-z nz_<bin>_<mode>.npz files "
+                         "(default <dest>/<ggl.out_subdir>/nz).")
+    ap.add_argument("--nz-mode", choices=["rp", "theta"], default=None,
+                    help="Scale convention of the n(z) to read (default: config "
+                         "ggl.dsigma.nz_mode, rp).")
+    ap.add_argument("--jk-seed", type=int, default=None,
+                    help="Seed of the dsigma jackknife-region KMeans (default None = unseeded, as in the "
+                         "production runs: the released jackknife errors are one random draw of "
+                         "the tessellation; set an int for a bit-reproducible covariance).")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
     cfg = gu.load_config(args.config)
     ggl = cfg["ggl"]
-    out_dir = Path(cfg["dest"]) / ggl["out_subdir"] / args.out_name
-    nz_dir = Path(cfg["dest"]) / ggl["out_subdir"] / "nz"
+    out_dir = (Path(args.out_dir) if args.out_dir
+               else Path(cfg["dest"]) / ggl["out_subdir"] / args.out_name)
+    nz_dir = Path(args.nz_dir) if args.nz_dir else Path(cfg["dest"]) / ggl["out_subdir"] / "nz"
+    nz_mode = args.nz_mode or ggl["dsigma"].get("nz_mode", "rp")
     jobs = build_jobs(cfg, out_dir, args.samples, args.massbins)
     if args.auto_resume:
         n0 = len(jobs)
@@ -321,7 +336,7 @@ def main() -> int:
             print(f"\npreparing source bin '{b}'...", flush=True)
             src, r_mean = gu.load_source_bin(cfg, b, head=args.head_sources)
             table_n, nz_file = load_nz_table(
-                nz_dir, b, ggl["dsigma"].get("nz_mode", "rp"),
+                nz_dir, b, nz_mode,
                 ggl["dsigma"].get("nz_smooth_sigma", 0.0))
             src_cache[b] = (source_table(src), table_n, nz_file, r_mean)
             del src
@@ -330,7 +345,7 @@ def main() -> int:
         print(f"\n{'-'*70}\n{j['stem']}\n{'-'*70}", flush=True)
         try:
             process(j, table_s, table_n, nz_file, ggl["dsigma"], out_dir,
-                    n_jobs_override=args.n_jobs)
+                    n_jobs_override=args.n_jobs, jk_seed=args.jk_seed)
         except Exception as exc:  # keep going across mass bins
             print(f"ERROR on {j['stem']}: {exc}", flush=True)
             import traceback

@@ -134,6 +134,12 @@ def main():
     ap.add_argument("--kmax", type=float, default=10.0)
     ap.add_argument("--plot", action="store_true")
     ap.add_argument("--overwrite", action="store_true")
+    ap.add_argument("--out-dir", default=None,
+                    help="write <stem>_gaussian_cov_projected.npz here (flat) instead of "
+                         "next to the measurement under <corr-dir>/<tracer>/")
+    ap.add_argument("--gauss-dir", default=None,
+                    help="directory holding the multipole <stem>_gaussian_cov.npz to read "
+                         "b1 from (default <corr-dir>/<tracer>/; compute_gaussian_cov --out-dir)")
     args = ap.parse_args()
 
     import pandas as pd
@@ -161,7 +167,9 @@ def main():
     state = {}
     for tracer, zlo, zhi, stem, sname in jobs:
         npz = corr_dir / tracer / f"{stem}_CPU_projected.npz"
-        out_npz = corr_dir / tracer / f"{stem}_gaussian_cov_projected.npz"
+        out_npz = ((Path(args.out_dir) if args.out_dir else corr_dir / tracer)
+                   / f"{stem}_gaussian_cov_projected.npz")
+        out_npz.parent.mkdir(parents=True, exist_ok=True)
         if not npz.exists():
             print(f"[skip] {npz.name}: not measured")
             continue
@@ -213,7 +221,8 @@ def main():
         if args.b1 is not None:
             b1 = float(args.b1)
         else:
-            gfile = corr_dir / tracer / f"{stem}_gaussian_cov.npz"
+            gfile = ((Path(args.gauss_dir) if args.gauss_dir else corr_dir / tracer)
+                     / f"{stem}_gaussian_cov.npz")
             if not gfile.exists():
                 raise SystemExit(f"{stem}: no --b1 and no multipole Gaussian cov "
                                  f"({gfile.name}) to read b1 from")

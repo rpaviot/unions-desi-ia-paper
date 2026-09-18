@@ -276,6 +276,7 @@ def main() -> int:
                     help="Before building, remove orphaned IA parquet (old layouts) and the "
                          "cached patch centres. Computed from the whole config, so safe with --tracers.")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--out-dir", default=None, help="output directory (default: the config location under <dest>)")
     args = ap.parse_args()
 
     import healpy as hp
@@ -289,7 +290,7 @@ def main() -> int:
     dest = Path(cfg["dest"])
     ia = cfg["ia_samples"]
     cat_dir = dest / ia["cat_subdir"]
-    out_dir = dest / ia["out_subdir"]
+    out_dir = Path(args.out_dir) if args.out_dir else dest / ia["out_subdir"]
     nside = int(ia["footprint_nside"])
     sep = float(ia["match_sep_arcsec"]) * u.arcsec
     mass_col = ia["mass_column"]

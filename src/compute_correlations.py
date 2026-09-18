@@ -633,16 +633,24 @@ def main():
     p.add_argument("--use-fkp", action="store_true",
                    help="apply FKP weights (WEIGHT*WEIGHT_FKP) to the density data + "
                         "randoms; the shape side is never FKP-weighted")
+    p.add_argument("--fkp", choices=["fkp", "none"], default=None,
+                   help="decision-style form of the FKP switch: 'fkp' = --use-fkp, "
+                        "'none' = no FKP weights (wins over --use-fkp)")
+    p.add_argument("--sysweights", choices=["recomputed", "desi"], default=None,
+                   help="decision-style form of the BGS systematics-weight switch: "
+                        "'recomputed' = the WEIGHT_CORR refitted on the UNIONS footprint "
+                        "(default), 'desi' = --no-sysweights (wins over --no-sysweights)")
     p.add_argument("--no-massbins", action="store_true",
                    help="full shape samples only (skip per-mass-bin shape samples)")
     p.add_argument("--n-patches", type=int, default=None,
                    help="override the jackknife patch count (default 70); also drives "
                         "the Mohammad+21 cross-pair down-weighting (Ns)")
-    p.add_argument("--kmeans-init", default=None, choices=["tree", "kmeans++", "random"],
+    p.add_argument("--kmeans-init", default=None,
+                   choices=["tree", "kmeans++", "kmeanspp", "random"],
                    help="treecorr k-means init for the patch tessellation (default "
-                        "random); 'kmeans++' reproduces the pre-2026-08-20 fiducial "
-                        "tessellation, 'tree' is treecorr's own default and is broken "
-                        "on the BGS randoms -- do not use it")
+                        "random); 'kmeans++' (alias 'kmeanspp') reproduces the "
+                        "pre-2026-08-20 fiducial tessellation, 'tree' is treecorr's own "
+                        "default and is broken on the BGS randoms -- do not use it")
     p.add_argument("--s-nbins", type=int, default=None,
                    help="override the number of log s-bins for the multipoles over "
                         "[--s-min, --s-max] (default 17 over [2,90]); finer binning "
@@ -678,8 +686,11 @@ def main():
 
     global USE_FKP, PROJ_MACHINE, N_PATCHES, KMEANS_INIT, S_BINS, RP_BINS, RP_CUT, OVERSAMPLE_FACTOR
     global NO_SYSWEIGHTS
-    USE_FKP = args.use_fkp
-    NO_SYSWEIGHTS = args.no_sysweights
+    USE_FKP = args.use_fkp if args.fkp is None else (args.fkp == "fkp")
+    NO_SYSWEIGHTS = (args.no_sysweights if args.sysweights is None
+                     else (args.sysweights == "desi"))
+    if args.kmeans_init == "kmeanspp":
+        args.kmeans_init = "kmeans++"
     if args.gpu_projected:
         PROJ_MACHINE = "GPU"
     if args.n_patches is not None:

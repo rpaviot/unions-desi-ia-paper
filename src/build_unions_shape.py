@@ -82,13 +82,14 @@ def main() -> int:
     ap.add_argument("--max-chunks", type=int, default=0,
                     help="Process only the first N chunks (for sizing/testing).")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--out-dir", default=None, help="output directory (default: the config location under <dest>)")
     args = ap.parse_args()
 
     import h5py
 
     cfg = yaml.safe_load(open(args.config))
     us = cfg["unions_shape"]
-    dest = Path(cfg["dest"]) / us["out_subdir"]
+    dest = Path(args.out_dir) if args.out_dir else Path(cfg["dest"]) / us["out_subdir"]
     dg = float(us["metacal_dg"])
     chunk_rows = int(us["chunk_rows"])
     samples = {k: v for k, v in us["samples"].items()

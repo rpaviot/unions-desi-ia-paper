@@ -322,6 +322,7 @@ def main() -> int:
                     help="--no-fastspec skips the stellar-mass merge (fast; colour "
                          "catalogues + GMM split only).")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--out-dir", default=None, help="output directory (default: the config location under <dest>)")
     args = ap.parse_args()
 
     cfg = yaml.safe_load(open(args.config))
@@ -330,7 +331,7 @@ def main() -> int:
     fastspec_dir = dest / cfg["sources"]["fastspec"]["subdir"]
     healpix = cfg["sources"]["fastspec"]["healpix"]
     cb = cfg["catalogue_build"]
-    out_dir = dest / cb["out_subdir"]
+    out_dir = Path(args.out_dir) if args.out_dir else dest / cb["out_subdir"]
     out_dir.mkdir(parents=True, exist_ok=True)
 
     tracers = cb["tracers"]

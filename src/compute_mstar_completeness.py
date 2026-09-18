@@ -198,7 +198,7 @@ def pozzetti_curve(d: pd.DataFrame, z_hi: float, m_lim=POZZETTI_MLIM):
     return np.array(zz), np.array(ll)
 
 
-def process_sample(sample, cfg, plot_dir: Path, make_plot: bool):
+def process_sample(sample, cfg, plot_dir: Path, make_plot: bool, out_dir=None):
     dest = Path(cfg["dest"])
     ggl = cfg["ggl"]
     csmf = cfg["csmf"]
@@ -271,7 +271,7 @@ def process_sample(sample, cfg, plot_dir: Path, make_plot: bool):
               f"{n_tot:>9,} {n_keep:>9,} {n_drop:>9,}  {100*(1-keep):4.1f}%")
 
     # --- save ---
-    out_dir = dest / "ggl" / "completeness"
+    out_dir = Path(out_dir) if out_dir else dest / "ggl" / "completeness"
     out_dir.mkdir(parents=True, exist_ok=True)
     out_npz = out_dir / f"{name}_mstar_completeness.npz"
     np.savez(
@@ -348,6 +348,8 @@ def main():
                     help="subset of csmf.samples names (default: all)")
     ap.add_argument("--plot-dir", default=str(gu.REPO / "plots"))
     ap.add_argument("--no-plot", action="store_true")
+    ap.add_argument("--out-dir", default=None,
+                    help="output directory (default: <dest>/ggl/completeness)")
     args = ap.parse_args()
 
     cfg = gu.load_config(args.config)
@@ -359,7 +361,7 @@ def main():
 
     plot_dir = Path(args.plot_dir)
     for s in samples:
-        process_sample(s, cfg, plot_dir, make_plot=not args.no_plot)
+        process_sample(s, cfg, plot_dir, make_plot=not args.no_plot, out_dir=args.out_dir)
 
 
 if __name__ == "__main__":

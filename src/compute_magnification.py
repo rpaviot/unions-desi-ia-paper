@@ -76,6 +76,8 @@ def main() -> int:
     ap.add_argument("--samples", nargs="+",
                     help="Restrict to these lens sample names (e.g. BGS_RED_GMM LRG).")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--out-dir", default=None,
+                    help="output directory for magnification_alphas.{csv,json} (default: <dest>/ggl)")
     args = ap.parse_args()
 
     cfg = gu.load_config(args.config)
@@ -84,7 +86,7 @@ def main() -> int:
     dest = Path(cfg["dest"])
     ia_dir = dest / ggl["ia_subdir"]
     cat_dir = dest / ggl["cat_subdir"]
-    out_dir = dest / ggl["out_subdir"]
+    out_dir = Path(args.out_dir) if args.out_dir else dest / ggl["out_subdir"]
     wcol = mc.get("weight_column", "WEIGHT_CLUSTERING")
     kappas = float(mc["kappa_step"]) * np.arange(int(mc["n_kappa"]))
     samples = [s for s in ggl["lens_samples"]

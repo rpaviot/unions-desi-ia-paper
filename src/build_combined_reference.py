@@ -74,6 +74,7 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--config", default=str(REPO / "config" / "data_sources.yaml"))
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--out-dir", default=None, help="output directory (default: the config location under <dest>)")
     args = ap.parse_args()
 
     cfg = yaml.safe_load(open(args.config))
@@ -83,7 +84,7 @@ def main() -> int:
     tracer = cr["tracer"]
     caps = cr["caps"]
     indices = cr["random_indices"]
-    out_dir = dest / cr["out_subdir"]
+    out_dir = Path(args.out_dir) if args.out_dir else dest / cr["out_subdir"]
     zlo, zhi = (float(v) for v in cr["z_range"])
     stem = f"{cr['stem']}_zmin_{zlo:.2f}_zmax_{zhi:.2f}"
     nside = int(cr["footprint_nside"])

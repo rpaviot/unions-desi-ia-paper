@@ -96,6 +96,9 @@ outputs:
       The distance cosmology is the real-h Planck18 one (H0 = 67.66): with
       table_n, H0 = 100 would inflate Delta Sigma by 1/h. Also stores the unit
       magnification template (alpha = 2) that build_csmf_input scales by alpha - 1.
+      The 100 jackknife regions are dsigma's KMeans on the lens positions, drawn
+      unseeded in the production run (the released covariance is one draw of that
+      tessellation; --jk-seed makes a re-run bit-reproducible).
     recipe:
       command: >-
         ${{IA_PYTHON:-python}} src/compute_deltasigma.py --config {inputs.sample_config}
@@ -110,8 +113,10 @@ outputs:
     description: |
       n_gal = sum(WEIGHT_COMP x WEIGHT_ZFAIL x WEIGHT_SYS) / V over the bin's redshift
       window and the footprint area, i.e. the DESI DR1 n(z) convention (WEIGHT_CLUSTERING
-      would under-count by ~1.9x). The error is a 100-region jackknife. The anchor is
-      what breaks the SHMR high-mass-slope degeneracy of a Delta Sigma-only fit.
+      would under-count by ~1.9x). The error is a 100-region jackknife on the same
+      KMeans tessellation as Delta Sigma, unseeded in production: a re-run reproduces
+      n_gal exactly and n_gal_err to ~10 % (--jk-seed for bit-reproducibility). The
+      anchor is what breaks the SHMR high-mass-slope degeneracy of a Delta Sigma-only fit.
     recipe:
       command: >-
         ${{IA_PYTHON:-python}} src/compute_ngal.py --config {inputs.sample_config}

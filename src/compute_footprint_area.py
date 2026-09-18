@@ -154,6 +154,8 @@ def tracer_area(randoms_parquet, occ, nside):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--config", default=str(CONFIG))
+    ap.add_argument("--out-dir", default=None,
+                    help="output directory (default: <dest>/<ia_samples.out_subdir>/sample_properties)")
     ap.add_argument("--tracers", nargs="*", default=None,
                     help="tracer names (default: all in ia_samples.tracers)")
     args = ap.parse_args()
@@ -163,7 +165,8 @@ def main():
     ia = cfg["ia_samples"]
     nside = int(ia["footprint_nside"])
     cat_dir = dest / ia["cat_subdir"]
-    out_dir = dest / ia["out_subdir"] / "sample_properties"
+    out_dir = (Path(args.out_dir) if args.out_dir
+               else dest / ia["out_subdir"] / "sample_properties")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     tracers = [t for t in ia["tracers"] if not args.tracers or t["name"] in args.tracers]

@@ -260,9 +260,11 @@ def vlim_boxes(M, Z, z_lim_of, zmin, zmax, floor, n_bins):
     return build(lo)
 
 
-def process(sample, cfg, vc, rng, make_plot, plot_dir):
+def process(sample, cfg, vc, rng, make_plot, plot_dir, out_dir=None):
     dest = Path(cfg["dest"])
-    out_dir = dest / vc["out_subdir"]
+    in_dir = dest / vc["out_subdir"]           # the IA shape samples + footprint randoms
+    out_dir = Path(out_dir) if out_dir else in_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
     name = sample["name"]
     zmin, zmax = float(sample["source_zmin"]), float(sample["source_zmax"])
     floor, n_bins = float(sample["floor"]), int(sample["n_mass_bins"])
@@ -279,8 +281,8 @@ def process(sample, cfg, vc, rng, make_plot, plot_dir):
     z_lim_of = lambda m: np.interp(m, mcen, zlim, left=zlim[0], right=zlim[-1])  # noqa: E731
 
     # full RED shape sample (already matched/calibrated) + footprint randoms
-    shapes = pd.read_parquet(out_dir / f"{src_tag}_shapes.parquet")
-    tr = pd.read_parquet(out_dir / f"{tr_tag}_randoms.parquet")
+    shapes = pd.read_parquet(in_dir / f"{src_tag}_shapes.parquet")
+    tr = pd.read_parquet(in_dir / f"{tr_tag}_randoms.parquet")
     print(f"\n=== {name} ===  source={src_tag}_shapes ({len(shapes):,})  "
           f"randoms={tr_tag}_randoms ({len(tr):,})  floor={floor}  n_bins={n_bins}  "
           f"scheme={scheme}")
@@ -290,7 +292,10 @@ def process(sample, cfg, vc, rng, make_plot, plot_dir):
     if scheme == "equal_snr":
         ggl_dir = dest / cfg["ggl"]["out_subdir"]
         W_of = snr_lens_weight(ggl_dir / "nz" / sample["snr_nz"])
-        mh_of = shmr_mh_of_logm(ggl_dir / "csmf_fit" / sample["snr_fit"])
+        # the SHMR-slope thinning needs a CSMF fit; the count-ratio scheme
+        # (production: snr_count_ratio 2.0) does not, so only load it when used
+        mh_of = (shmr_mh_of_logm(ggl_dir / "csmf_fit" / sample["snr_fit"])
+                 if "snr_count_ratio" not in sample else None)
         boxes = vlim_boxes_snr(M, Z, z_lim_of, zmin, zmax, floor, n_bins,
                                W_of, mh_of, int(sample.get("snr_n_min", 5000)),
                                float(sample.get("snr_mass_pct_hi", 99.9)),
@@ -363,6 +368,9 @@ def main():
                     help="subset of vlim_samples names (default: all)")
     ap.add_argument("--plot-dir", default=str(gu.REPO / "plots"))
     ap.add_argument("--no-plot", action="store_true")
+    ap.add_argument("--out-dir", default=None,
+                    help="directory for the bin parquets (default: <dest>/<vlim_samples.out_subdir>, "
+                         "beside the IA samples they are cut from)")
     args = ap.parse_args()
 
     cfg = gu.load_config(args.config)
@@ -376,7 +384,8 @@ def main():
     rng = np.random.default_rng(int(vc.get("seed", 42)))
     plot_dir = Path(args.plot_dir)
     for s in samples:
-        process(s, cfg, vc, rng, make_plot=not args.no_plot, plot_dir=plot_dir)
+        process(s, cfg, vc, rng, make_plot=not args.no_plot, plot_dir=plot_dir,
+                out_dir=args.out_dir)
     return 0
 
 

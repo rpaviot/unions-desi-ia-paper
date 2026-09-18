@@ -353,6 +353,8 @@ def main() -> int:
                          "sweep doesn't clobber the fiducial dz=0.05 n(z) that ΔΣ "
                          "depends on.")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--out-dir", default=None,
+                    help="output directory for nz_<bin>_<mode>.npz (default: <dest>/ggl/nz)")
     args = ap.parse_args()
 
     cfg = gu.load_config(args.config)
@@ -374,7 +376,7 @@ def main() -> int:
             ap.error(f"unknown tracers: {sorted(unknown)}")
         nzc["reference_tracers"] = [t for t in nzc["reference_tracers"]
                                     if t["name"] in args.tracers]
-    out_dir = Path(cfg["dest"]) / ggl["out_subdir"] / "nz"
+    out_dir = Path(args.out_dir) if args.out_dir else Path(cfg["dest"]) / ggl["out_subdir"] / "nz"
     bins = [b for b in ggl["source_bins"] if not args.bins or b in args.bins]
 
     print(f"source bins : {', '.join(bins)}")

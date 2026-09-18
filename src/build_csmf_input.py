@@ -138,6 +138,15 @@ def main():
                    help="Suffix of the ngal npz to read (compute_ngal --suffix), "
                         "e.g. '_z5' -> ngal_<sample>_z5.npz. Always read from the "
                         "fiducial csmf.out_subdir.")
+    p.add_argument("--deltasigma-dir", default=None, metavar="DIR",
+                   help="Explicit ΔΣ input directory (wins over --in-name).")
+    p.add_argument("--ngal-dir", default=None, metavar="DIR",
+                   help="Directory of the ngal_<sample><suffix>.npz files (default: the "
+                        "fiducial csmf.out_subdir).")
+    p.add_argument("--alphas", default=None, metavar="CSV",
+                   help="Magnification alphas csv (default <dest>/<csmf.alphas_csv>).")
+    p.add_argument("--out-dir", default=None, metavar="DIR",
+                   help="Explicit output directory (wins over --out-name).")
     p.add_argument("--dry-run", action="store_true")
     args = p.parse_args()
 
@@ -145,11 +154,17 @@ def main():
     dest = Path(cfg["dest"])
     csmf = cfg["csmf"]
     in_dir = (dest / "ggl" / args.in_name) if args.in_name else (dest / csmf["in_subdir"])
+    if args.deltasigma_dir:
+        in_dir = Path(args.deltasigma_dir)
     out_dir = (dest / "ggl" / args.out_name) if args.out_name else (dest / csmf["out_subdir"])
-    ngal_dir = dest / csmf["out_subdir"]   # ngal npz always lives with the fiducial build
+    if args.out_dir:
+        out_dir = Path(args.out_dir)
+    # ngal npz: with the fiducial build unless a directory is given
+    ngal_dir = Path(args.ngal_dir) if args.ngal_dir else dest / csmf["out_subdir"]
     subtract_mag = args.subtract_mag and bool(csmf.get("subtract_magnification", True))
 
-    alphas = load_alphas(dest / csmf["alphas_csv"])
+    alphas_csv = Path(args.alphas) if args.alphas else dest / csmf["alphas_csv"]
+    alphas = load_alphas(alphas_csv)
 
     samples = csmf["samples"]
     if args.samples:
@@ -157,7 +172,8 @@ def main():
 
     print(f"in   : {in_dir}")
     print(f"out  : {out_dir}")
-    print(f"alpha: {dest / csmf['alphas_csv']}")
+    print(f"alpha: {alphas_csv}")
+    print(f"ngal : {ngal_dir}/ngal_<sample>{args.ngal_suffix}.npz")
     print(f"magnification subtraction (global default): {'ON' if subtract_mag else 'OFF'}\n")
 
     if not args.dry_run:

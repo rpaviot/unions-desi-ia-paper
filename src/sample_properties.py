@@ -149,6 +149,8 @@ def main():
     p = argparse.ArgumentParser(description="Compute IA shape-sample properties")
     p.add_argument("--config", default=str(CONFIG))
     p.add_argument("--only", default=None, help="substring filter on the sample stem")
+    p.add_argument("--out-dir", default=None,
+                   help="output directory (default: <dest>/<ia_samples.out_subdir>/sample_properties)")
     p.add_argument("--overwrite", action="store_true",
                    help="recompute samples whose JSON already exists")
     p.add_argument("--build-logs", nargs="*", default=None,
@@ -165,7 +167,7 @@ def main():
 
     cfg = load_config(args.config)
     ia_dir = Path(cfg["dest"]) / cfg["ia_samples"]["out_subdir"]
-    out_dir = ia_dir / "sample_properties"
+    out_dir = Path(args.out_dir) if args.out_dir else ia_dir / "sample_properties"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     stems = shape_sample_stems(cfg)

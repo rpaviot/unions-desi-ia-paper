@@ -269,6 +269,9 @@ def main():
     ap.add_argument("--bfit-range", type=float, nargs=2, default=(10.0, 50.0))
     ap.add_argument("--plot", action="store_true")
     ap.add_argument("--overwrite", action="store_true")
+    ap.add_argument("--out-dir", default=None,
+                    help="write <stem>_gaussian_cov.npz here (flat) instead of next to "
+                         "the measurement under <corr-dir>/<tracer>/")
     args = ap.parse_args()
 
     import pandas as pd
@@ -297,7 +300,9 @@ def main():
     state = {}
     for tracer, zlo, zhi, stem, sname in jobs:
         npz = corr_dir / tracer / f"{stem}_GPU_multipoles.npz"
-        out_npz = corr_dir / tracer / f"{stem}_gaussian_cov.npz"
+        out_npz = ((Path(args.out_dir) if args.out_dir else corr_dir / tracer)
+                   / f"{stem}_gaussian_cov.npz")
+        out_npz.parent.mkdir(parents=True, exist_ok=True)
         if not npz.exists():
             print(f"[skip] {npz.name}: not measured")
             continue

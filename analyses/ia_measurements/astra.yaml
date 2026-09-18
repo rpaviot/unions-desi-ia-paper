@@ -73,14 +73,14 @@ outputs:
     inputs: [ia_samples, sample_config]
     decisions: [jackknife_tessellation, fkp_weights, bgs_sysweights]
     description: |
-      xi_0, xi~22 on s = geomspace(6, 100, 20) (mu in 200 bins) and wp, wg+ on the
+      xi_0, xi~22 on 19 bins with edges s = geomspace(6, 100, 20) (mu in 200 bins) and wp, wg+ on the
       same r_p edges (Pi in 20 bins to 100 h^-1 Mpc), 70 jackknife realisations,
       n(z) of both samples and z_eff in the npz. Release: data/correlations_highscales.
     recipe:
       command: >-
         ${{IA_PYTHON:-python}} src/compute_correlations.py --config {inputs.sample_config}
         --tracer LRG --zmin 0.4 --zmax 0.75 --sample LRG --with-projected
-        --s-nbins 20 --s-min 6 --s-max 100 --rp-match-s
+        --s-nbins 19 --s-min 6 --s-max 100 --rp-match-s
         --n-patches 70 --kmeans-init {decisions.jackknife_tessellation}
         --fkp {decisions.fkp_weights} --sysweights {decisions.bgs_sysweights}
         --out {output}
@@ -91,14 +91,14 @@ outputs:
     inputs: [ia_samples, sample_config]
     decisions: [jackknife_tessellation, fkp_weights, bgs_sysweights]
     description: |
-      The same measurement on s = geomspace(6, 100, 11): a finer xi~22 binning buys
+      The same measurement on 10 bins with edges s = geomspace(6, 100, 11): a finer xi~22 binning buys
       no IA precision but spends covariance budget, so the fits take xi~22 / wg+
       from this grid and xi_0 / wp from the fine one. Release: data/correlations_xi2coarse.
     recipe:
       command: >-
         ${{IA_PYTHON:-python}} src/compute_correlations.py --config {inputs.sample_config}
         --tracer LRG --zmin 0.4 --zmax 0.75 --sample LRG --with-projected
-        --s-nbins 11 --s-min 6 --s-max 100 --rp-match-s
+        --s-nbins 10 --s-min 6 --s-max 100 --rp-match-s
         --n-patches 70 --kmeans-init {decisions.jackknife_tessellation}
         --fkp {decisions.fkp_weights} --sysweights {decisions.bgs_sysweights}
         --out {output}

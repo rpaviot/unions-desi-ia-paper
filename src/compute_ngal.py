@@ -89,7 +89,7 @@ def radec_table(ra, dec):
 
 
 def ngal_one(shapes_file, randoms_file, zlo, n_jk, nside, omega_fid,
-             zlo_percentile=None):
+             zlo_percentile=None, jk_seed=None):
     """n_gal + jackknife error for one (sample, mass bin).
 
     omega_fid: fiducial footprint area in steradians (density-ratio estimator,
@@ -140,7 +140,7 @@ def ngal_one(shapes_file, randoms_file, zlo, n_jk, nside, omega_fid,
     # Jackknife: SAME patch construction as the ΔΣ covariance (KMeans on lenses,
     # centers reused on randoms). Drop patch k from both count and area.
     tl, tr = radec_table(ra_l, dec_l), radec_table(ra_r, dec_r)
-    centers = compute_jackknife_fields(tl, n_jk)
+    centers = compute_jackknife_fields(tl, n_jk, seed=jk_seed)
     compute_jackknife_fields(tr, centers)
     fjl = np.asarray(tl["field_jk"])
     fjr = np.asarray(tr["field_jk"])
@@ -167,6 +167,16 @@ def ngal_one(shapes_file, randoms_file, zlo, n_jk, nside, omega_fid,
     )
 
 
+def zlo_percentile_arg(s):
+    """--zlo-percentile value: a percentile, or the decision ids z5 / full."""
+    s = str(s).strip().lower()
+    if s in ("full", "none"):
+        return None
+    if s.startswith("z") and s[1:].replace(".", "", 1).isdigit():
+        return float(s[1:])
+    return float(s)
+
+
 def main():
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -176,10 +186,11 @@ def main():
                     help="Lens samples to process (default: VLIM + standard BGS red).")
     ap.add_argument("--nside", type=int, default=256,
                     help="healpix nside for the random-traced area (default 256).")
-    ap.add_argument("--zlo-percentile", type=float, default=None,
+    ap.add_argument("--zlo-percentile", type=zlo_percentile_arg, default=None,
                     help="Per-bin lower z edge = this percentile of the bin's own "
                          "n(z) (floored at the config zmin), instead of the fixed "
-                         "config zmin. Galaxies below it are dropped from the count.")
+                         "config zmin. Galaxies below it are dropped from the count. "
+                         "Also accepts the decision ids 'z5' (= 5) and 'full' (= no cut).")
     ap.add_argument("--suffix", default="",
                     help="Appended to the output stem, e.g. '_z5' -> "
                          "ngal_<sample>_z5.npz (keeps the fiducial npz intact)")
@@ -190,6 +201,16 @@ def main():
                          "DESI DR1 convention (the '#effective area' of the released "
                          "*_nz.txt tables; Vol_bin there = shell x effective area). "
                          "Measured 2026-09-17: BGS overlap <FRAC_TLOBS_TILES> = 0.988.")
+    ap.add_argument("--out-dir", default=None,
+                    help="Output directory for ngal_<sample><suffix>.npz "
+                         "(default <dest>/<ggl.out_subdir>/csmf_input).")
+    ap.add_argument("--area-dir", default=None,
+                    help="Directory of the footprint_area_<tracer>.json files "
+                         "(default <dest>/<ia_samples.out_subdir>/sample_properties).")
+    ap.add_argument("--jk-seed", type=int, default=None,
+                    help="Seed of the dsigma jackknife-region KMeans (default None = unseeded, as in the "
+                         "production runs: the released jackknife errors are one random draw of "
+                         "the tessellation; set an int for a bit-reproducible covariance).")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
@@ -197,8 +218,9 @@ def main():
     dest = Path(cfg["dest"])
     ggl = cfg["ggl"]
     ia_dir = dest / ggl["ia_subdir"]
-    out_dir = dest / ggl["out_subdir"] / "csmf_input"
-    area_dir = dest / cfg["ia_samples"]["out_subdir"] / "sample_properties"
+    out_dir = Path(args.out_dir) if args.out_dir else dest / ggl["out_subdir"] / "csmf_input"
+    area_dir = (Path(args.area_dir) if args.area_dir
+                else dest / cfg["ia_samples"]["out_subdir"] / "sample_properties")
     n_jk = int(ggl["dsigma"]["n_jackknife"])
     lens_samples = {s["name"]: s for s in ggl["lens_samples"]}
 
@@ -254,7 +276,7 @@ def main():
                 print(f"{i:>3}  MISSING {sf.name if not sf.exists() else rf.name}")
                 continue
             r = ngal_one(sf, rf, zlo, n_jk, args.nside, omega_fid,
-                         zlo_percentile=args.zlo_percentile)
+                         zlo_percentile=args.zlo_percentile, jk_seed=args.jk_seed)
             rows.append((i, r))
             print(f"{i:>3} {r['logmstar_min']:>8.3f} {r['logmstar_max']:>8.3f} "
                   f"{r['zhi']:>6.3f} {r['N_raw']:>8} {r['area_deg2']:>9.0f} "

@@ -117,8 +117,9 @@ outputs:
     description: |
       csmf_fit_minuit.npz (or _nautilus): best-fit parameters, covariance, chi2 split,
       recorded mass definition and halo-model kwargs. Paper fiducial: chi2 = 134.7
-      for 100 dof (Delta Sigma 107.6 + n_gal 26.1 + prior 1.0), log M0 = 10.67,
-      log M1 = 11.12, gamma2 = 0.20, sigma_c = 0.25.
+      (Delta Sigma 107.6 over 100 points + n_gal 26.1 over 10 bins + prior 1.0) for
+      ndof = 90 as the fitter counts it (Delta Sigma points - 10 free parameters),
+      log M0 = 10.67, log M1 = 11.12, gamma2 = 0.20, sigma_c = 0.25.
     recipe:
       command: >-
         ${{HOD_PYTHON:-python}} src/fit_csmf.py --config {inputs.sample_config}
