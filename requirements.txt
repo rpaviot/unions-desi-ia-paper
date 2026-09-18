@@ -1,6 +1,37 @@
-numpy
-pandas
+# IA stack (IA_PYTHON): everything but the CSMF halo-model fit, which runs in the
+# HOD_NRV environment (containers/Containerfile.hod, HOD_PYTHON). Versions are the
+# ones the paper was produced with (Python 3.12.8, 2026-09); >= pins where the API is
+# stable, == where a version mattered.
+numpy==2.4.6
+scipy==1.17.1
+pandas==3.0.3
+pyarrow>=24.0
+astropy>=7.0
+healpy>=1.19
+h5py>=3.13
+fitsio>=1.3
+pyyaml>=6.0
+scikit-learn>=1.6
+matplotlib>=3.10
+pyGTC>=0.5
 
-# Execution stack — lets this image run rules on any backend,
-# including as a Dask Gateway worker pod.
+# modelling + fitting
+pyccl==3.3.4
+camb==1.6.6
+fast-pt==4.0.0
+iminuit>=2.32
+nautilus-sampler==1.0.6
+emcee>=3.1
+ia2pt @ git+https://github.com/rpaviot/IA2pt.git@29fa0a54aadd3eee87e6c6ce29c2527f26aceb15   # 0.2.0: NLA/TATT model, likelihood, samplers, Gaussian covariance
+
+# two-point measurements
+TreeCorr==5.1.3            # jackknife patch assignment, projected pair counts (djk CPU path)
+pycorr==1.0.0              # projected wp / wg+ (CPU path)
+Corrfunc>=2.5
+dsigma==1.2.0              # Delta Sigma (real-h cosmology: see analyses/ggl)
+# GPU multipoles (CUDA). Neither is on PyPI; the release used these revisions:
+cucount @ git+https://github.com/adematti/cucount.git@cf61c8adb8442873012eefeff77a3d537130dbc9   # 0.2.7
+lsstypes @ git+https://github.com/adematti/lsstypes.git@db4842db0fd2084f5372015cfeb338fb1b04bda4  # 1.0.0
+
+# orchestration (lc run / lc status / lc verify)
 lightcone-cli==0.4.2
