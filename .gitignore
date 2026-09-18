@@ -1,0 +1,16 @@
+# ASTRA Analysis
+__pycache__/
+*.py[cod]
+.venv/
+.ipynb_checkpoints/
+.DS_Store
+
+# lightcone-cli
+.lightcone/Snakefile
+.lightcone/snakefile-config.json
+.snakemake/
+.snakemake.legacy/
+results/
+
+# MyST build output
+_build/

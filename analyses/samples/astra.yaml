@@ -1,0 +1,142 @@
+# Sub-analysis: sample construction (DESI catalogues + UNIONS shapes -> analysis samples)
+#
+# Everything here is driven by config/data_sources.yaml; the choices are recorded in the
+# output descriptions (config key in brackets). The stage needs the proprietary UNIONS
+# catalogue from `unions_shape_samples` onwards; `catalogues` and `combined_reference`
+# are DESI-only and regenerable by anyone.
+
+version: "0.0.14"
+id: samples
+name: "Sample construction"
+description: |
+  Builds the analysis samples from the DESI DR1 LSS catalogues, FastSpecFit stellar
+  masses and the UNIONS shape catalogue: the per-tracer clustering catalogues with the
+  BGS red / blue split, the UNIONS-matched shape samples per redshift and stellar-mass
+  bin with their shape randoms, the recomputed BGS imaging-systematics weights, the
+  volume-limited S/N-binned BGS red lens sample, the stellar-mass completeness curves,
+  the footprint areas and the per-sample properties (shape noise, n_eff, z_eff).
+
+inputs:
+  - id: desi_dr1_lss
+    from: ../desi_dr1_lss
+  - id: desi_fastspecfit
+    from: ../desi_fastspecfit
+  - id: desi_imaging_maps
+    from: ../desi_imaging_maps
+  - id: unions_shapes
+    from: ../unions_shapes
+  - id: sample_config
+    from: ../sample_config
+
+outputs:
+  - id: catalogues
+    label: "DESI clustering catalogues with colour splits"
+    type: data
+    inputs: [desi_dr1_lss, desi_fastspecfit, sample_config]
+    description: |
+      Per tracer: the NGC+SGC clustering catalogue joined with the full catalogue and
+      FastSpecFit (LOGMSTAR, sSFR), dereddened photometry [catalogue_build.dered_bands],
+      and for BGS the red / blue split by a 3-component Gaussian mixture on g-r in
+      redshift slices with a 2-sigma assignment [catalogue_build.gmm: n_components 3,
+      z_bins 0.01-0.5, sigma_cut 2.0, random_state 42] plus the sSFR alternative
+      [ssfr_threshold 1e-11 /yr]; and the randoms. DESI-only, no UNIONS needed.
+      Writes <dest>/catalogues/<tracer>_clustering.{dat,ran}.parquet.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/build_catalogues.py --config {inputs.sample_config}
+        --out-dir {output}
+      resources: { cpus: 4, memory: "48GB", time_limit: "1h" }
+  - id: unions_shape_samples
+    label: "UNIONS shape samples for_IA and for_GGL"
+    type: data
+    inputs: [unions_shapes, sample_config]
+    description: |
+      One streaming pass over the UNIONS hdf5: for_IA (dec > 22, no quality cut
+      [unions_shape.samples.IA]) and for_GGL (ShapePipe cond1: size ratio 0.5-3,
+      mag > 20, S/N 10-200, veto bits [unions_shape.samples.GGL]), with the metacal
+      responsivity R = (e1P - e1M) / 2 dg, dg = 0.01. PROPRIETARY INPUT.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/build_unions_shape.py --config {inputs.sample_config}
+        --out-dir {output}
+      resources: { cpus: 4, memory: "32GB", time_limit: "2h" }
+  - id: ia_samples
+    label: "IA samples: density, randoms, shapes, shape randoms per bin"
+    type: data
+    inputs: [catalogues, unions_shape_samples, desi_imaging_maps, sample_config]
+    description: |
+      Per tracer and redshift bin [ia_samples.tracers: BGS 0.1-0.5, LRG 0.4-0.75 and
+      0.75-1.1, ELG 0.8-1.6]: the density sample and its randoms (x20) on the UNIONS
+      footprint (nside 8192 mask), the 1-arcsec matched shape samples with the
+      sample-mean responsivity calibration, the stellar-mass bins (equal-S/N scheme
+      for BGS red 12 bins and LRG 5 bins [snr_logm_break 11, beta 0/0.5, n_min 30000];
+      equipopulated 2 bins for BGS blue) and the shape randoms (positions from the
+      tracer randoms, z and weights resampled from the shapes). For BGS the imaging
+      systematics weights are refitted on the UNIONS footprint (RidgeCV on 6 maps,
+      20 percentile bins, floor 1e-3 [ia_samples.systematics]) and the randoms
+      rebuilt DESI-style (P0 = 7000). PROPRIETARY INPUT.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/build_ia_samples.py --config {inputs.sample_config}
+        --clean --out-dir {output}
+      resources: { cpus: 8, memory: "50GB", time_limit: "2h" }
+  - id: mstar_completeness
+    label: "Stellar-mass completeness curves (Wright+17 turn-over)"
+    type: data
+    inputs: [catalogues, ia_samples, sample_config]
+    description: |
+      M*_lim(z) of the BGS red lens sample from the peak of dN/dchi in stellar-mass
+      slices (0.1 dex, >= 500 galaxies, smoothing 2.0, 60 chi bins), made monotonic;
+      the "count turn-over" estimator is adopted over Wright et al. 2017's density
+      threshold and the "mode turn-over" cross-check.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/compute_mstar_completeness.py --config {inputs.sample_config}
+        --no-plot --out-dir {output}
+  - id: vlim_lens_sample
+    label: "Volume-limited S/N-binned BGS red lens sample"
+    type: data
+    inputs: [ia_samples, mstar_completeness, sample_config]
+    description: |
+      BGS_RED_GMM_VLIM_SNR: the BGS red shape sample re-binned into 10 volume-limited
+      stellar-mass boxes (z_lim from the completeness curve) with the equal-S/N
+      scheme [vlim_samples: snr_count_ratio 2.0, snr_mass_max 11.40, snr_n_min 5000],
+      plus shape randoms. This is the lens sample of the Delta Sigma / CSMF chain.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/build_vlim_samples.py --config {inputs.sample_config}
+        --samples BGS_RED_GMM_VLIM_SNR --no-plot --out-dir {output}
+      resources: { cpus: 8, memory: "60GB", time_limit: "2h" }
+  - id: footprint_area
+    label: "Footprint area of the DESI x UNIONS overlap"
+    type: data
+    inputs: [catalogues, unions_shape_samples, sample_config]
+    description: |
+      Resolution-free density-ratio area per tracer: kept randoms / (files x 2500
+      per deg2), cross-checked against healpix occupied-pixel areas at nside
+      256-8192. Feeds the Gaussian covariance and the n_gal anchor.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/compute_footprint_area.py --config {inputs.sample_config}
+        --out-dir {output}
+  - id: sample_properties
+    label: "Per-sample properties (sigma_e, n_eff, z_eff, M* statistics)"
+    type: data
+    inputs: [ia_samples, sample_config]
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/sample_properties.py --config {inputs.sample_config}
+        --overwrite --out-dir {output}
+  - id: combined_reference
+    label: "LRG+ELG combined clustering-z reference (0.8 < z < 1.1)"
+    type: data
+    inputs: [desi_dr1_lss, unions_shape_samples, sample_config]
+    description: |
+      The DESI LRG+ELG_LOPnotqso combined clustering catalogue and randoms, cut to
+      0.80 < z < 1.10 and to the UNIONS footprint, used as one of the three
+      non-overlapping reference slices of the clustering-z estimate.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/build_combined_reference.py --config {inputs.sample_config}
+        --out-dir {output}
+      resources: { memory: "64GB", time_limit: "1h" }

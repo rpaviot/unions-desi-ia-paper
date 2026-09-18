@@ -1,0 +1,194 @@
+# Sub-analysis: NLA / TATT fits of the IA statistics with ia2pt (github.com/rpaviot/IA2pt)
+#
+# Re-runnable from the released correlations (data/correlations_highscales,
+# data/correlations_xi2coarse) in the IA environment (IA_PYTHON).
+
+version: "0.0.14"
+id: ia_fits
+name: "NLA / TATT fits of the IA correlations"
+description: |
+  Fits of the wedge multipoles [xi_0, xi~22] (and, for five samples, of the projected
+  [wp, wg+]) of every sample with the ia2pt NLA model (b1, A_IA) or, for the blue
+  samples, the TATT model (b1, A_1, A_2 with b_TA = 1), on the split grids: xi_0 / wp
+  from the fine grid, xi~22 / wg+ from the coarse grid, joined block-diagonally. The
+  IA block is modelled at the pair-weighted effective redshift of the density x shape
+  window, the clustering block at the density sample's z_eff. Posteriors from the
+  nautilus nested sampler; the covariance is the delete-one jackknife with the
+  Mohammad & Percival correction, without Hartlap factor and with the cross-statistic
+  blocks zeroed (standing convention of the analysis).
+
+inputs:
+  - id: correlations_fine
+    from: ../release_correlations_fine
+  - id: correlations_coarse
+    from: ../release_correlations_coarse
+  - id: sample_properties
+    from: ../release_sample_properties
+  - id: sample_config
+    from: ../sample_config
+
+decisions:
+  z_ia:
+    label: "Effective redshift of the IA block"
+    tags: [model]
+    rationale: |
+      The IA amplitude scales with the growth factor D(z); modelling xi~22 at the
+      density sample's z_eff instead of the pair-weighted z of the density x shape
+      window biases A_IA by up to -10 % for the faint BGS bins. The paper fits at
+      the pair redshift; the clustering z_eff is the historical convention.
+    default: pair
+    options:
+      pair: { label: "Pair-weighted z of the density x shape window" }
+      clustering: { label: "Density-sample z_eff (historical)" }
+  rmin_gg:
+    label: "Minimum scale of the clustering monopole"
+    tags: [scales]
+    rationale: |
+      The clustering model is linear bias + Kaiser; on the fine grid 30 h^-1 Mpc
+      leaves 8 points in the linear regime. 25 h^-1 Mpc was the convention on the
+      legacy 17-bin grid (b1 there is dragged by the s = 26 bin).
+    default: "30"
+    options:
+      "30": { label: "s >= 30 h^-1 Mpc" }
+      "25": { label: "s >= 25 h^-1 Mpc" }
+  rmin_gp_nla:
+    label: "Minimum scale of xi~22 in the NLA fits"
+    tags: [scales]
+    rationale: |
+      NLA on the quadrupole down to 10 h^-1 Mpc; 6 h^-1 Mpc is the common low-cut
+      variant (A_IA robust, chi2 worse).
+    default: "10"
+    options:
+      "10": { label: "s >= 10 h^-1 Mpc" }
+      "6": { label: "s >= 6 h^-1 Mpc" }
+  rmin_gp_tatt:
+    label: "Minimum scale of xi~22 in the TATT fits"
+    tags: [scales]
+    rationale: |
+      TATT's one-loop terms are what the small scales constrain; the blue-sample
+      fits use 6 h^-1 Mpc ("6 Mpc/h for IA, same ranges for monopole").
+    default: "6"
+    options:
+      "6": { label: "s >= 6 h^-1 Mpc" }
+      "10": { label: "s >= 10 h^-1 Mpc" }
+  a2_prior:
+    label: "Flat prior half-width on the TATT A_2"
+    tags: [priors]
+    rationale: |
+      With the package default [-3, 3] three of the four blue posteriors run into the
+      wall (BGS blue high-mass A_2 = 2.06 +- 0.70), which shrinks sigma and inflates
+      mu / sigma; [-6, 6] lets the data set the A_2 significances.
+    default: "6"
+    options:
+      "6": { label: "[-6, 6] (paper)" }
+      "5": { label: "[-5, 5]" }
+      "3": { label: "[-3, 3] (package default)" }
+  tatt_bta:
+    label: "TATT density weighting b_TA"
+    tags: [model]
+    rationale: |
+      b_TA is degenerate with A_2 at the precision of the blue samples; the paper
+      fixes b_TA = 1 (TATT reduces to b1, A_1, A_2). b2 is always fixed to 0: left
+      free it rails at its prior bound in every sample while buying no improvement.
+    default: "1"
+    options:
+      "1": { label: "b_TA = 1 fixed" }
+      free: { label: "b_TA free in [-3, 3]" }
+  sampler:
+    label: "Sampler"
+    tags: [stats]
+    rationale: |
+      nautilus nested sampling (3000 live points, 50000 effective samples) for the
+      quoted posteriors (medians, 16-84 % errors); MINUIT for fast scans (best fit,
+      parabolic errors).
+    default: nautilus
+    options:
+      nautilus: { label: "nautilus" }
+      minuit: { label: "MINUIT" }
+  covariance_convention:
+    label: "Jackknife covariance handling"
+    tags: [covariance]
+    rationale: |
+      The covariance is a delete-one jackknife over 70 patches with the Mohammad &
+      Percival (2022) cross-pair correction. Its realisations are strongly
+      correlated, so the Hartlap factor (n - p - 2)/(n - 1) over-corrects, and the
+      cross blocks between xi_0 and xi~22 are noise-dominated. The convention is
+      therefore no Hartlap factor and zeroed cross blocks, and it must be the same
+      across compared fits: with the alternative a superset model (TATT) can appear
+      to fit worse than its subset (NLA).
+    default: zero_cross_no_hartlap
+    options:
+      zero_cross_no_hartlap: { label: "No Hartlap, cross blocks zeroed (--no-hartlap --zero-cross-cov)" }
+      full_jk_hartlap:
+        label: "Full jackknife covariance with Hartlap factor"
+        excluded: true
+        excluded_reason: "Over-corrects a delete-one jackknife and mixes noise-dominated cross blocks into chi2; superseded 2026-07."
+
+outputs:
+  - id: nla_multipoles
+    label: "NLA fits of [xi_0, xi~22], all samples"
+    type: data
+    inputs: [correlations_fine, correlations_coarse, sample_properties, sample_config]
+    decisions: [z_ia, rmin_gg, rmin_gp_nla, sampler, covariance_convention]
+    description: |
+      One npz per sample (30: BGS red 12 mass bins + 5 further BGS samples, LRG 2 x
+      (main + 5 bins), ELG): b1, A_IA, chi2, cut data / model / covariance, the
+      posterior chain, z_eff of both blocks. The sSFR colour-split samples are
+      excluded from the corpus (--exclude SFR, GMM split fiducial).
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/fit_ia.py --config {inputs.sample_config}
+        --stat multipoles --model NLA --sampler {decisions.sampler}
+        --corr-dir {inputs.correlations_fine} --corr-dir-gp {inputs.correlations_coarse}
+        --properties-dir {inputs.sample_properties}
+        --exclude SFR --no-hartlap --zero-cross-cov --zeff-ia {decisions.z_ia}
+        --rmin {decisions.rmin_gg} {decisions.rmin_gp_nla} --rmax 100
+        --pool 8 --out-dir {output}
+      resources: { cpus: 8, memory: "16GB", time_limit: "12h" }
+  - id: nla_projected
+    label: "NLA fits of [wp, wg+], five samples"
+    type: data
+    inputs: [correlations_fine, correlations_coarse, sample_properties, sample_config]
+    decisions: [z_ia, sampler, covariance_convention]
+    description: |
+      The projected statistics were measured for BGS blue (main + 2 bins), LRG z1 and
+      ELG; the fits use r_p >= 6 h^-1 Mpc for both statistics (Pi_max = 100). The
+      fitted a1 has the opposite sign to the multipole one (w_g+ convention); the
+      figures and tables flip it.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/fit_ia.py --config {inputs.sample_config}
+        --stat projected --model NLA --sampler {decisions.sampler}
+        --corr-dir {inputs.correlations_fine} --corr-dir-gp {inputs.correlations_coarse}
+        --properties-dir {inputs.sample_properties}
+        --exclude SFR --no-hartlap --zero-cross-cov --zeff-ia {decisions.z_ia}
+        --rmin 6 6 --rmax 100
+        --pool 8 --out-dir {output}
+      resources: { cpus: 8, memory: "16GB", time_limit: "12h" }
+  - id: tatt_blue
+    label: "TATT fits of [xi_0, xi~22], blue samples"
+    type: data
+    inputs: [correlations_fine, correlations_coarse, sample_properties, sample_config]
+    decisions: [z_ia, rmin_gg, rmin_gp_tatt, a2_prior, tatt_bta, sampler, covariance_convention]
+    description: BGS blue (main + 2 mass bins) and ELG; b2 fixed to 0.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/fit_ia.py --config {inputs.sample_config}
+        --stat multipoles --model TATT --fix-b2 --fix-bta {decisions.tatt_bta}
+        --prior a2 -{decisions.a2_prior} {decisions.a2_prior}
+        --sampler {decisions.sampler}
+        --corr-dir {inputs.correlations_fine} --corr-dir-gp {inputs.correlations_coarse}
+        --properties-dir {inputs.sample_properties}
+        --sample BLUE_GMM --sample ELG_ --exclude SFR
+        --no-hartlap --zero-cross-cov --zeff-ia {decisions.z_ia}
+        --rmin {decisions.rmin_gg} {decisions.rmin_gp_tatt} --rmax 100
+        --pool 8 --out-dir {output}
+      resources: { cpus: 8, memory: "16GB", time_limit: "12h" }
+  - id: tatt_stats
+    label: "TATT posterior statistics (P(A_2 > 0), degeneracy direction, ELG chi2 split)"
+    type: metric
+    inputs: [tatt_blue]
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/tatt_posterior_stats.py --wide-dir {inputs.tatt_blue}
+        --narrow-dir {inputs.tatt_blue} > {output}/tatt_posterior_stats.txt

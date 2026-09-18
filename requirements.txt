@@ -1,0 +1,6 @@
+numpy
+pandas
+
+# Execution stack — lets this image run rules on any backend,
+# including as a Dask Gateway worker pod.
+lightcone-cli==0.4.2

@@ -1,0 +1,4 @@
+id: baseline
+description: "Fiducial GGL chain: r_p-window clustering-z (n_gal window / area inherited from the root)"
+decisions:
+  nz_scale_mode: rp

@@ -1,0 +1,11 @@
+id: baseline
+description: "Paper fiducial IA fits: z_pair, rmin 30 / 10 (NLA) / 6 (TATT), A_2 in [-6, 6], b_TA = 1, nautilus"
+decisions:
+  z_ia: pair
+  rmin_gg: "30"
+  rmin_gp_nla: "10"
+  rmin_gp_tatt: "6"
+  a2_prior: "6"
+  tatt_bta: "1"
+  sampler: nautilus
+  covariance_convention: zero_cross_no_hartlap

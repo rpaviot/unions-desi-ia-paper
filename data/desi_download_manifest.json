@@ -1,0 +1,924 @@
+{
+  "generated": "2026-06-15T14:52:52.988361+00:00",
+  "config": "/home/rpaviot/unions_IA/config/data_sources.yaml",
+  "sources": [
+    "desi_lss",
+    "desi_lss_combined",
+    "fastspec"
+  ],
+  "dest": "/n09data/rpaviot/DESIxUnions",
+  "n_files": 91,
+  "total_bytes": 154576503360,
+  "files": [
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "BGS_ANY_NGC_0_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/BGS_ANY_NGC_0_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/BGS_ANY_NGC_0_clustering.ran.fits",
+      "expected": 1656118080,
+      "actual": 1656118080,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "BGS_ANY_NGC_1_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/BGS_ANY_NGC_1_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/BGS_ANY_NGC_1_clustering.ran.fits",
+      "expected": 1656449280,
+      "actual": 1656449280,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "BGS_ANY_NGC_2_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/BGS_ANY_NGC_2_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/BGS_ANY_NGC_2_clustering.ran.fits",
+      "expected": 1655956800,
+      "actual": 1655956800,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "BGS_ANY_NGC_3_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/BGS_ANY_NGC_3_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/BGS_ANY_NGC_3_clustering.ran.fits",
+      "expected": 1656313920,
+      "actual": 1656313920,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "BGS_ANY_NGC_4_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/BGS_ANY_NGC_4_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/BGS_ANY_NGC_4_clustering.ran.fits",
+      "expected": 1656999360,
+      "actual": 1656999360,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "BGS_ANY_NGC_5_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/BGS_ANY_NGC_5_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/BGS_ANY_NGC_5_clustering.ran.fits",
+      "expected": 1656650880,
+      "actual": 1656650880,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "BGS_ANY_NGC_6_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/BGS_ANY_NGC_6_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/BGS_ANY_NGC_6_clustering.ran.fits",
+      "expected": 1655956800,
+      "actual": 1655956800,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "BGS_ANY_NGC_7_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/BGS_ANY_NGC_7_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/BGS_ANY_NGC_7_clustering.ran.fits",
+      "expected": 1656414720,
+      "actual": 1656414720,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_data",
+      "filename": "BGS_ANY_NGC_clustering.dat.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/BGS_ANY_NGC_clustering.dat.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/BGS_ANY_NGC_clustering.dat.fits",
+      "expected": 477512640,
+      "actual": 477512640,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "BGS_ANY_SGC_0_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/BGS_ANY_SGC_0_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/BGS_ANY_SGC_0_clustering.ran.fits",
+      "expected": 679127040,
+      "actual": 679127040,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "BGS_ANY_SGC_1_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/BGS_ANY_SGC_1_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/BGS_ANY_SGC_1_clustering.ran.fits",
+      "expected": 679475520,
+      "actual": 679475520,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "BGS_ANY_SGC_2_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/BGS_ANY_SGC_2_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/BGS_ANY_SGC_2_clustering.ran.fits",
+      "expected": 678672000,
+      "actual": 678672000,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "BGS_ANY_SGC_3_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/BGS_ANY_SGC_3_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/BGS_ANY_SGC_3_clustering.ran.fits",
+      "expected": 679083840,
+      "actual": 679083840,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "BGS_ANY_SGC_4_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/BGS_ANY_SGC_4_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/BGS_ANY_SGC_4_clustering.ran.fits",
+      "expected": 678988800,
+      "actual": 678988800,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "BGS_ANY_SGC_5_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/BGS_ANY_SGC_5_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/BGS_ANY_SGC_5_clustering.ran.fits",
+      "expected": 679046400,
+      "actual": 679046400,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "BGS_ANY_SGC_6_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/BGS_ANY_SGC_6_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/BGS_ANY_SGC_6_clustering.ran.fits",
+      "expected": 678816000,
+      "actual": 678816000,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "BGS_ANY_SGC_7_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/BGS_ANY_SGC_7_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/BGS_ANY_SGC_7_clustering.ran.fits",
+      "expected": 679080960,
+      "actual": 679080960,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_data",
+      "filename": "BGS_ANY_SGC_clustering.dat.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/BGS_ANY_SGC_clustering.dat.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/BGS_ANY_SGC_clustering.dat.fits",
+      "expected": 168621120,
+      "actual": 168621120,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "full_data",
+      "filename": "BGS_ANY_full.dat.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/BGS_ANY_full.dat.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/BGS_ANY_full.dat.fits",
+      "expected": 8471926080,
+      "actual": 8471926080,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "ELG_LOPnotqso_NGC_0_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/ELG_LOPnotqso_NGC_0_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/ELG_LOPnotqso_NGC_0_clustering.ran.fits",
+      "expected": 1176108480,
+      "actual": 1176108480,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "ELG_LOPnotqso_NGC_1_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/ELG_LOPnotqso_NGC_1_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/ELG_LOPnotqso_NGC_1_clustering.ran.fits",
+      "expected": 1175613120,
+      "actual": 1175613120,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "ELG_LOPnotqso_NGC_2_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/ELG_LOPnotqso_NGC_2_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/ELG_LOPnotqso_NGC_2_clustering.ran.fits",
+      "expected": 1175895360,
+      "actual": 1175895360,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "ELG_LOPnotqso_NGC_3_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/ELG_LOPnotqso_NGC_3_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/ELG_LOPnotqso_NGC_3_clustering.ran.fits",
+      "expected": 1176212160,
+      "actual": 1176212160,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "ELG_LOPnotqso_NGC_4_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/ELG_LOPnotqso_NGC_4_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/ELG_LOPnotqso_NGC_4_clustering.ran.fits",
+      "expected": 1175757120,
+      "actual": 1175757120,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "ELG_LOPnotqso_NGC_5_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/ELG_LOPnotqso_NGC_5_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/ELG_LOPnotqso_NGC_5_clustering.ran.fits",
+      "expected": 1176157440,
+      "actual": 1176157440,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "ELG_LOPnotqso_NGC_6_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/ELG_LOPnotqso_NGC_6_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/ELG_LOPnotqso_NGC_6_clustering.ran.fits",
+      "expected": 1176255360,
+      "actual": 1176255360,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "ELG_LOPnotqso_NGC_7_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/ELG_LOPnotqso_NGC_7_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/ELG_LOPnotqso_NGC_7_clustering.ran.fits",
+      "expected": 1175981760,
+      "actual": 1175981760,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_data",
+      "filename": "ELG_LOPnotqso_NGC_clustering.dat.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/ELG_LOPnotqso_NGC_clustering.dat.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/ELG_LOPnotqso_NGC_clustering.dat.fits",
+      "expected": 205819200,
+      "actual": 205819200,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "ELG_LOPnotqso_SGC_0_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/ELG_LOPnotqso_SGC_0_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/ELG_LOPnotqso_SGC_0_clustering.ran.fits",
+      "expected": 615934080,
+      "actual": 615934080,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "ELG_LOPnotqso_SGC_1_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/ELG_LOPnotqso_SGC_1_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/ELG_LOPnotqso_SGC_1_clustering.ran.fits",
+      "expected": 615853440,
+      "actual": 615853440,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "ELG_LOPnotqso_SGC_2_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/ELG_LOPnotqso_SGC_2_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/ELG_LOPnotqso_SGC_2_clustering.ran.fits",
+      "expected": 615862080,
+      "actual": 615862080,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "ELG_LOPnotqso_SGC_3_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/ELG_LOPnotqso_SGC_3_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/ELG_LOPnotqso_SGC_3_clustering.ran.fits",
+      "expected": 615755520,
+      "actual": 615755520,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "ELG_LOPnotqso_SGC_4_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/ELG_LOPnotqso_SGC_4_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/ELG_LOPnotqso_SGC_4_clustering.ran.fits",
+      "expected": 615936960,
+      "actual": 615936960,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "ELG_LOPnotqso_SGC_5_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/ELG_LOPnotqso_SGC_5_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/ELG_LOPnotqso_SGC_5_clustering.ran.fits",
+      "expected": 615551040,
+      "actual": 615551040,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "ELG_LOPnotqso_SGC_6_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/ELG_LOPnotqso_SGC_6_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/ELG_LOPnotqso_SGC_6_clustering.ran.fits",
+      "expected": 616104000,
+      "actual": 616104000,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "ELG_LOPnotqso_SGC_7_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/ELG_LOPnotqso_SGC_7_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/ELG_LOPnotqso_SGC_7_clustering.ran.fits",
+      "expected": 616055040,
+      "actual": 616055040,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_data",
+      "filename": "ELG_LOPnotqso_SGC_clustering.dat.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/ELG_LOPnotqso_SGC_clustering.dat.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/ELG_LOPnotqso_SGC_clustering.dat.fits",
+      "expected": 69024960,
+      "actual": 69024960,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "full_data",
+      "filename": "ELG_LOPnotqso_full.dat.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/ELG_LOPnotqso_full.dat.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/ELG_LOPnotqso_full.dat.fits",
+      "expected": 9616697280,
+      "actual": 9616697280,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "LRG_NGC_0_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG_NGC_0_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG_NGC_0_clustering.ran.fits",
+      "expected": 985916160,
+      "actual": 985916160,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "LRG_NGC_1_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG_NGC_1_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG_NGC_1_clustering.ran.fits",
+      "expected": 985394880,
+      "actual": 985394880,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "LRG_NGC_2_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG_NGC_2_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG_NGC_2_clustering.ran.fits",
+      "expected": 985570560,
+      "actual": 985570560,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "LRG_NGC_3_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG_NGC_3_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG_NGC_3_clustering.ran.fits",
+      "expected": 985976640,
+      "actual": 985976640,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "LRG_NGC_4_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG_NGC_4_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG_NGC_4_clustering.ran.fits",
+      "expected": 985622400,
+      "actual": 985622400,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "LRG_NGC_5_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG_NGC_5_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG_NGC_5_clustering.ran.fits",
+      "expected": 986011200,
+      "actual": 986011200,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "LRG_NGC_6_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG_NGC_6_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG_NGC_6_clustering.ran.fits",
+      "expected": 986123520,
+      "actual": 986123520,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "LRG_NGC_7_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG_NGC_7_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG_NGC_7_clustering.ran.fits",
+      "expected": 985731840,
+      "actual": 985731840,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_data",
+      "filename": "LRG_NGC_clustering.dat.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG_NGC_clustering.dat.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG_NGC_clustering.dat.fits",
+      "expected": 143196480,
+      "actual": 143196480,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "LRG_SGC_0_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG_SGC_0_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG_SGC_0_clustering.ran.fits",
+      "expected": 520781760,
+      "actual": 520781760,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "LRG_SGC_1_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG_SGC_1_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG_SGC_1_clustering.ran.fits",
+      "expected": 520732800,
+      "actual": 520732800,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "LRG_SGC_2_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG_SGC_2_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG_SGC_2_clustering.ran.fits",
+      "expected": 520750080,
+      "actual": 520750080,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "LRG_SGC_3_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG_SGC_3_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG_SGC_3_clustering.ran.fits",
+      "expected": 520548480,
+      "actual": 520548480,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "LRG_SGC_4_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG_SGC_4_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG_SGC_4_clustering.ran.fits",
+      "expected": 520836480,
+      "actual": 520836480,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "LRG_SGC_5_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG_SGC_5_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG_SGC_5_clustering.ran.fits",
+      "expected": 520464960,
+      "actual": 520464960,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "LRG_SGC_6_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG_SGC_6_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG_SGC_6_clustering.ran.fits",
+      "expected": 520920000,
+      "actual": 520920000,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_random",
+      "filename": "LRG_SGC_7_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG_SGC_7_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG_SGC_7_clustering.ran.fits",
+      "expected": 520983360,
+      "actual": 520983360,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "clustering_data",
+      "filename": "LRG_SGC_clustering.dat.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG_SGC_clustering.dat.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG_SGC_clustering.dat.fits",
+      "expected": 64272960,
+      "actual": 64272960,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss",
+      "pattern": "full_data",
+      "filename": "LRG_full.dat.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG_full.dat.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG_full.dat.fits",
+      "expected": 2970558720,
+      "actual": 2970558720,
+      "status": "skipped"
+    },
+    {
+      "source": "desi_lss_combined",
+      "pattern": "clustering_random",
+      "filename": "LRG+ELG_LOPnotqso_NGC_0_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG+ELG_LOPnotqso_NGC_0_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG+ELG_LOPnotqso_NGC_0_clustering.ran.fits",
+      "expected": 2312248320,
+      "actual": 2312248320,
+      "status": "ok"
+    },
+    {
+      "source": "desi_lss_combined",
+      "pattern": "clustering_random",
+      "filename": "LRG+ELG_LOPnotqso_NGC_1_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG+ELG_LOPnotqso_NGC_1_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG+ELG_LOPnotqso_NGC_1_clustering.ran.fits",
+      "expected": 2311151040,
+      "actual": 2311151040,
+      "status": "ok"
+    },
+    {
+      "source": "desi_lss_combined",
+      "pattern": "clustering_random",
+      "filename": "LRG+ELG_LOPnotqso_NGC_2_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG+ELG_LOPnotqso_NGC_2_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG+ELG_LOPnotqso_NGC_2_clustering.ran.fits",
+      "expected": 2311634880,
+      "actual": 2311634880,
+      "status": "ok"
+    },
+    {
+      "source": "desi_lss_combined",
+      "pattern": "clustering_random",
+      "filename": "LRG+ELG_LOPnotqso_NGC_3_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG+ELG_LOPnotqso_NGC_3_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG+ELG_LOPnotqso_NGC_3_clustering.ran.fits",
+      "expected": 2312421120,
+      "actual": 2312421120,
+      "status": "ok"
+    },
+    {
+      "source": "desi_lss_combined",
+      "pattern": "clustering_data",
+      "filename": "LRG+ELG_LOPnotqso_NGC_clustering.dat.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG+ELG_LOPnotqso_NGC_clustering.dat.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG+ELG_LOPnotqso_NGC_clustering.dat.fits",
+      "expected": 399000960,
+      "actual": 399000960,
+      "status": "ok"
+    },
+    {
+      "source": "desi_lss_combined",
+      "pattern": "clustering_random",
+      "filename": "LRG+ELG_LOPnotqso_SGC_0_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG+ELG_LOPnotqso_SGC_0_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG+ELG_LOPnotqso_SGC_0_clustering.ran.fits",
+      "expected": 1216059840,
+      "actual": 1216059840,
+      "status": "ok"
+    },
+    {
+      "source": "desi_lss_combined",
+      "pattern": "clustering_random",
+      "filename": "LRG+ELG_LOPnotqso_SGC_1_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG+ELG_LOPnotqso_SGC_1_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG+ELG_LOPnotqso_SGC_1_clustering.ran.fits",
+      "expected": 1215924480,
+      "actual": 1215924480,
+      "status": "ok"
+    },
+    {
+      "source": "desi_lss_combined",
+      "pattern": "clustering_random",
+      "filename": "LRG+ELG_LOPnotqso_SGC_2_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG+ELG_LOPnotqso_SGC_2_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG+ELG_LOPnotqso_SGC_2_clustering.ran.fits",
+      "expected": 1215950400,
+      "actual": 1215950400,
+      "status": "ok"
+    },
+    {
+      "source": "desi_lss_combined",
+      "pattern": "clustering_random",
+      "filename": "LRG+ELG_LOPnotqso_SGC_3_clustering.ran.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG+ELG_LOPnotqso_SGC_3_clustering.ran.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG+ELG_LOPnotqso_SGC_3_clustering.ran.fits",
+      "expected": 1215613440,
+      "actual": 1215613440,
+      "status": "ok"
+    },
+    {
+      "source": "desi_lss_combined",
+      "pattern": "clustering_data",
+      "filename": "LRG+ELG_LOPnotqso_SGC_clustering.dat.fits",
+      "url": "https://webdav-hdfs.pic.es/data/public/DESI/DR1/survey/catalogs/dr1/LSS/iron/LSScats/v1.5/LRG+ELG_LOPnotqso_SGC_clustering.dat.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/LSS/iron/v1.5/LRG+ELG_LOPnotqso_SGC_clustering.dat.fits",
+      "expected": 154071360,
+      "actual": 154071360,
+      "status": "ok"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-bright-nside1-hp00.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-bright-nside1-hp00.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-bright-nside1-hp00.fits",
+      "expected": 447563520,
+      "actual": 447563520,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-bright-nside1-hp01.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-bright-nside1-hp01.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-bright-nside1-hp01.fits",
+      "expected": 4468049280,
+      "actual": 4468049280,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-bright-nside1-hp02.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-bright-nside1-hp02.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-bright-nside1-hp02.fits",
+      "expected": 5968638720,
+      "actual": 5968638720,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-bright-nside1-hp03.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-bright-nside1-hp03.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-bright-nside1-hp03.fits",
+      "expected": 1773118080,
+      "actual": 1773118080,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-bright-nside1-hp04.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-bright-nside1-hp04.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-bright-nside1-hp04.fits",
+      "expected": 4312356480,
+      "actual": 4312356480,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-bright-nside1-hp05.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-bright-nside1-hp05.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-bright-nside1-hp05.fits",
+      "expected": 1322732160,
+      "actual": 1322732160,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-bright-nside1-hp06.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-bright-nside1-hp06.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-bright-nside1-hp06.fits",
+      "expected": 5919598080,
+      "actual": 5919598080,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-bright-nside1-hp07.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-bright-nside1-hp07.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-bright-nside1-hp07.fits",
+      "expected": 2959801920,
+      "actual": 2959801920,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-bright-nside1-hp08.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-bright-nside1-hp08.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-bright-nside1-hp08.fits",
+      "expected": 359242560,
+      "actual": 359242560,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-bright-nside1-hp09.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-bright-nside1-hp09.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-bright-nside1-hp09.fits",
+      "expected": 293886720,
+      "actual": 293886720,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-bright-nside1-hp10.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-bright-nside1-hp10.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-bright-nside1-hp10.fits",
+      "expected": 200378880,
+      "actual": 200378880,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-bright-nside1-hp11.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-bright-nside1-hp11.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-bright-nside1-hp11.fits",
+      "expected": 293852160,
+      "actual": 293852160,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-dark-nside1-hp00.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-dark-nside1-hp00.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-dark-nside1-hp00.fits",
+      "expected": 1550954880,
+      "actual": 1550954880,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-dark-nside1-hp01.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-dark-nside1-hp01.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-dark-nside1-hp01.fits",
+      "expected": 4922671680,
+      "actual": 4922671680,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-dark-nside1-hp02.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-dark-nside1-hp02.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-dark-nside1-hp02.fits",
+      "expected": 7476324480,
+      "actual": 7476324480,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-dark-nside1-hp03.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-dark-nside1-hp03.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-dark-nside1-hp03.fits",
+      "expected": 944686080,
+      "actual": 944686080,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-dark-nside1-hp04.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-dark-nside1-hp04.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-dark-nside1-hp04.fits",
+      "expected": 7653182400,
+      "actual": 7653182400,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-dark-nside1-hp05.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-dark-nside1-hp05.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-dark-nside1-hp05.fits",
+      "expected": 2547901440,
+      "actual": 2547901440,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-dark-nside1-hp06.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-dark-nside1-hp06.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-dark-nside1-hp06.fits",
+      "expected": 12548456640,
+      "actual": 12548456640,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-dark-nside1-hp07.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-dark-nside1-hp07.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-dark-nside1-hp07.fits",
+      "expected": 4541656320,
+      "actual": 4541656320,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-dark-nside1-hp08.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-dark-nside1-hp08.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-dark-nside1-hp08.fits",
+      "expected": 953916480,
+      "actual": 953916480,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-dark-nside1-hp09.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-dark-nside1-hp09.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-dark-nside1-hp09.fits",
+      "expected": 688584960,
+      "actual": 688584960,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-dark-nside1-hp10.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-dark-nside1-hp10.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-dark-nside1-hp10.fits",
+      "expected": 327824640,
+      "actual": 327824640,
+      "status": "skipped"
+    },
+    {
+      "source": "fastspec",
+      "pattern": "fastspec",
+      "filename": "fastspec-iron-main-dark-nside1-hp11.fits",
+      "url": "https://data.desi.lbl.gov/public/dr1/vac/dr1/fastspecfit/iron/v3.0/catalogs/fastspec-iron-main-dark-nside1-hp11.fits",
+      "path": "/n09data/rpaviot/DESIxUnions/desi/dr1/fastspecfit/iron/v3.0/fastspec-iron-main-dark-nside1-hp11.fits",
+      "expected": 178871040,
+      "actual": 178871040,
+      "status": "skipped"
+    }
+  ]
+}

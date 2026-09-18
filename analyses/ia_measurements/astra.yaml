@@ -1,0 +1,123 @@
+# Sub-analysis: IA two-point measurements (pair counts + jackknife + Gaussian covariance)
+#
+# Worked example: LRG 0.40 < z < 0.75. The release under data/correlations_* was
+# produced by the same commands looped over every sample of config/data_sources.yaml
+# (39 samples; SLURM array on the GPU node). Needs the UNIONS-matched shape samples.
+
+version: "0.0.14"
+id: ia_measurements
+name: "IA correlation measurements"
+description: |
+  Pair counts of the density sample with itself (xi_gg) and with the shape sample
+  (xi_g+): the wedge-free multipoles xi_0 and the spin-2 associated-Legendre
+  quadrupole xi~_{2,2} in (s, mu) with cucount on the GPU, and the projected wp / wg+
+  in (r_p, Pi) up to Pi_max = 100 h^-1 Mpc with pycorr / treecorr, all with a
+  70-patch delete-one jackknife covariance (patches: k-means on the randoms) and the
+  Mohammad & Percival (2022) cross-pair correction. The estimator normalisation is
+  R_D S (shape randoms are not used) and e_+ > 0 for radial alignment (= -e_t).
+  Both grids of the split-binning design are measured: xi_0 / wp on a fine grid,
+  xi~22 / wg+ on a coarse one. The Gaussian covariance (ia2pt.gausscov) is computed
+  for comparison with the jackknife.
+
+inputs:
+  - id: ia_samples
+    from: ../samples.ia_samples
+  - id: sample_properties
+    from: ../samples.sample_properties
+  - id: footprint_area
+    from: ../samples.footprint_area
+  - id: sample_config
+    from: ../sample_config
+
+decisions:
+  jackknife_tessellation:
+    label: "Jackknife patch tessellation"
+    tags: [covariance]
+    rationale: |
+      70 patches from k-means on the randoms. The k-means initialisation changes the
+      tessellation and, through the covariance, the significances: re-drawing the
+      patches on identical data moved the ELG A_IA from -3.7 to -1.0 sigma, and
+      kmeans++ tessellates the BGS footprint badly (unbalanced patches). The centres
+      of the fiducial tessellation are shipped (data/ia/patch_centers).
+    default: random
+    options:
+      random: { label: "k-means, random init (fiducial, cached centres)" }
+      kmeanspp: { label: "k-means++ init (pre-2026-08-20 fiducial)" }
+  fkp_weights:
+    label: "FKP weights on the density sample"
+    tags: [weights]
+    rationale: |
+      Density data and randoms carry WEIGHT_FKP (P0 = 7000) in addition to the
+      completeness / systematics weights, as in the DESI clustering analyses; the
+      shape side is never FKP-weighted. Standing rule of the analysis: on.
+    default: fkp
+    options:
+      fkp: { label: "FKP weights on" }
+      none: { label: "No FKP weights" }
+  bgs_sysweights:
+    label: "BGS imaging-systematics weights"
+    tags: [weights]
+    rationale: |
+      For BGS the imaging-systematics weight is refitted on the UNIONS footprint
+      (WEIGHT_CORR, analyses/samples) instead of DESI's full-footprint WEIGHT_SYS.
+      Null test on xi~22: 0.03 sigma difference.
+    default: recomputed
+    options:
+      recomputed: { label: "Refitted on the UNIONS footprint (WEIGHT_CORR)" }
+      desi: { label: "DESI catalogue weights (--no-sysweights)" }
+
+outputs:
+  - id: correlations_fine
+    label: "LRG z1 multipoles + projected, fine grid"
+    type: data
+    inputs: [ia_samples, sample_config]
+    decisions: [jackknife_tessellation, fkp_weights, bgs_sysweights]
+    description: |
+      xi_0, xi~22 on s = geomspace(6, 100, 20) (mu in 200 bins) and wp, wg+ on the
+      same r_p edges (Pi in 20 bins to 100 h^-1 Mpc), 70 jackknife realisations,
+      n(z) of both samples and z_eff in the npz. Release: data/correlations_highscales.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/compute_correlations.py --config {inputs.sample_config}
+        --tracer LRG --zmin 0.4 --zmax 0.75 --sample LRG --with-projected
+        --s-nbins 20 --s-min 6 --s-max 100 --rp-match-s
+        --n-patches 70 --kmeans-init {decisions.jackknife_tessellation}
+        --fkp {decisions.fkp_weights} --sysweights {decisions.bgs_sysweights}
+        --out {output}
+      resources: { cpus: 8, memory: "60GB", gpus: 1, time_limit: "4h" }
+  - id: correlations_coarse
+    label: "LRG z1 multipoles + projected, coarse grid"
+    type: data
+    inputs: [ia_samples, sample_config]
+    decisions: [jackknife_tessellation, fkp_weights, bgs_sysweights]
+    description: |
+      The same measurement on s = geomspace(6, 100, 11): a finer xi~22 binning buys
+      no IA precision but spends covariance budget, so the fits take xi~22 / wg+
+      from this grid and xi_0 / wp from the fine one. Release: data/correlations_xi2coarse.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/compute_correlations.py --config {inputs.sample_config}
+        --tracer LRG --zmin 0.4 --zmax 0.75 --sample LRG --with-projected
+        --s-nbins 11 --s-min 6 --s-max 100 --rp-match-s
+        --n-patches 70 --kmeans-init {decisions.jackknife_tessellation}
+        --fkp {decisions.fkp_weights} --sysweights {decisions.bgs_sysweights}
+        --out {output}
+      resources: { cpus: 8, memory: "60GB", gpus: 1, time_limit: "4h" }
+  - id: gaussian_cov
+    label: "LRG z1 Gaussian covariance of [xi0, xi~22] and [wp, wg+]"
+    type: data
+    inputs: [correlations_fine, ia_samples, footprint_area, sample_config]
+    description: |
+      Grieb et al. 2016 generalised to the spin-2 quadrupole (ia2pt.gausscov) with the
+      survey's varying number density and shape noise; b1 from a closed-form fit to
+      the measured xi_0 over 10-50 h^-1 Mpc; the projected analogue with the exact
+      finite-Pi_max window. Used to diagnose the jackknife (the JK chi2 excess is in
+      the off-diagonals).
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/compute_gaussian_cov.py --config {inputs.sample_config}
+        --corr-dir {inputs.correlations_fine} --tracers LRG --samples LRG_zmin_0.40_zmax_0.75
+        --out-dir {output} &&
+        ${{IA_PYTHON:-python}} src/compute_gaussian_cov_projected.py --config {inputs.sample_config}
+        --corr-dir {inputs.correlations_fine} --tracers LRG --samples LRG_zmin_0.40_zmax_0.75
+        --gauss-dir {output} --out-dir {output}

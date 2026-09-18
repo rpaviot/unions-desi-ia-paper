@@ -1,0 +1,13 @@
+# Baseline universe = the paper (Paviot et al., draft of 2026-09-17).
+id: baseline
+description: "The paper's fiducial choices: z5 / effective-area n_gal, linear A_IA fit metric"
+decisions:
+  ngal_zwindow: z5
+  ngal_area: effective
+  aia_mass_fit_space: linear
+analyses:
+  samples: { universe: baseline }
+  ia_measurements: { universe: baseline }
+  ggl: { universe: baseline }
+  csmf: { universe: baseline }
+  ia_fits: { universe: baseline }

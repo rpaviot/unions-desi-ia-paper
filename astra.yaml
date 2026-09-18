@@ -1,0 +1,353 @@
+# ASTRA Analysis Specification -- UNIONS x DESI intrinsic alignments (Paviot et al.)
+#
+# Layout
+#   analyses/samples          DESI catalogues -> colour / stellar-mass samples, shape samples,
+#                             randoms, jackknife patches, volume-limited lens sample   [needs UNIONS]
+#   analyses/ia_measurements  xi0 / xi~22 multipoles and wp / wg+ with jackknife covariance,
+#                             Gaussian covariance                                      [needs UNIONS + GPU]
+#   analyses/ggl              magnification alphas, clustering-z n(z), Delta Sigma, area, n_gal,
+#                             CSMF-fit inputs                                          [needs UNIONS]
+#   analyses/csmf             CSMF halo-model fit of Delta Sigma + n_gal -> SHMR, M_eff relation
+#   analyses/ia_fits          NLA / TATT fits of the IA statistics (ia2pt)
+#   root outputs              the paper's figures and tables
+#
+# The UNIONS shape catalogue is proprietary, so the three upstream stages can only be
+# re-run with data access; their outputs are shipped as snapshots under data/ (the
+# "release_*" inputs below) and the two downstream stages + the paper are re-runnable
+# by anyone from those snapshots.
+
+version: "0.0.14"
+id: unions_desi_ia
+name: "UNIONS x DESI: intrinsic alignments of DESI BGS, LRG and ELG galaxies"
+container: Containerfile
+tags: [intrinsic-alignments, weak-lensing, DESI, UNIONS]
+description: |
+  Measurement and modelling of the intrinsic alignments (IA) of DESI DR1 spectroscopic
+  galaxies (BGS, LRG, ELG) with UNIONS galaxy shapes: galaxy-shape correlations as
+  wedged multipoles and projected statistics, NLA / TATT fits of the alignment
+  amplitude A_IA per colour and stellar-mass bin, and the mapping of the BGS red
+  stellar-mass bins to an effective halo mass M_eff through a galaxy-galaxy lensing
+  (Delta Sigma) + abundance fit of a conditional stellar mass function halo model.
+  The headline result is the A_IA - M_eff relation (a broken power law) across BGS
+  red and LRG samples, with blue galaxies and ELGs consistent with no alignment.
+
+# ---------------------------------------------------------------------------- inputs
+inputs:
+  # --- raw data --------------------------------------------------------------
+  - id: desi_dr1_lss
+    label: "DESI DR1 LSS catalogues"
+    type: data
+    source: data/desi/dr1/LSS
+    description: |
+      DESI DR1 (iron) LSS clustering catalogues and randoms, v1.5, for BGS_ANY, LRG,
+      ELG_LOPnotqso and the combined LRG+ELG_LOPnotqso, NGC + SGC, randoms 0-7
+      (0-3 for the combined tracer). 91 files / 155 GB downloaded from the PIC webdav
+      mirror by src/fetch_desi.py; every file's URL, expected size and checksum status
+      is in data/desi_download_manifest.json. Local copy: symlink data/desi.
+  - id: desi_fastspecfit
+    label: "FastSpecFit stellar masses"
+    type: data
+    source: data/desi/dr1/fastspecfit
+    description: |
+      FastSpecFit iron value-added catalogue (bright + dark programs, healpix nside=1
+      files) providing LOGMSTAR and sSFR for the stellar-mass bins and the sSFR
+      colour split. Part of the same download manifest.
+  - id: desi_imaging_maps
+    label: "DESI imaging-systematics maps"
+    type: data
+    source: data/hpmaps
+    description: |
+      DESI LSS pipeline healpix maps (STARDENS, HI, GALDEPTH_R, PSFSIZE_R, PSFDEPTH_W1,
+      GALDEPTH_G; nside 256, per cap) used to recompute the BGS imaging-systematics
+      weights on the UNIONS footprint (src/sysweights.py).
+  - id: unions_shapes
+    label: "UNIONS shape catalogue (proprietary)"
+    type: data
+    source: data/unions
+    description: |
+      UNIONS / CFIS ShapePipe shape catalogue v1.6.9 (PSFEx PSF model) with the DR6
+      BPZ photo-z (ugriz, ODDS), 644.5 M rows hdf5. NOT distributed: UNIONS data are
+      proprietary to the collaboration. src/build_unions_shape.py documents exactly
+      which columns are read and how the two derived samples (for_IA: no quality cut,
+      dec > 22; for_GGL: ShapePipe cond1 cuts) are built; see data/unions/README.md.
+  - id: sample_config
+    label: "Sample definitions (config/data_sources.yaml)"
+    type: data
+    source: config/data_sources.yaml
+    description: |
+      Every sample definition of the analysis: tracers, redshift bins, GMM colour
+      split, stellar-mass binning schemes (equal-N / equal-S/N), randoms factors,
+      BGS systematics regression, GGL source bins, clustering-z and Delta Sigma
+      settings, CSMF priors, volume-limited lens sample. Read by every script.
+
+  # --- released snapshots of the upstream (UNIONS-dependent) stages -------------
+  - id: release_sample_properties
+    label: "Sample properties (release)"
+    type: data
+    source: data/ia/sample_properties
+    description: |
+      Snapshot of analyses/samples outputs: per shape sample sigma_e, n_eff, z_eff,
+      LOGMSTAR statistics (json) and the density-ratio footprint areas per tracer
+      (footprint_area_<tracer>.json, 2026-09).
+  - id: release_patch_centres
+    label: "Jackknife patch centres (release)"
+    type: data
+    source: data/ia/patch_centers
+    description: |
+      The 70 k-means patch centres (init 'random') of every measured sample. Shipped
+      because re-drawing the tessellation on identical data moved the ELG A_IA from
+      -3.7 to -1.0 sigma: the covariances are only reproducible with these centres.
+  - id: release_correlations_fine
+    label: "IA correlations, fine grid (release)"
+    type: data
+    source: data/correlations_highscales
+    description: |
+      Snapshot of analyses/ia_measurements.correlations_fine: xi0 / xi~22 on
+      s = geomspace(6, 100, 20) and wp / wg+ on the matching r_p grid, with the 70-patch
+      delete-one jackknife covariances (raw and Mohammad & Percival 2022 corrected),
+      both n(z), z_eff and sample counts inside each npz. All 39 samples, 1.7 MB.
+  - id: release_correlations_coarse
+    label: "IA correlations, coarse grid (release)"
+    type: data
+    source: data/correlations_xi2coarse
+    description: |
+      Snapshot of analyses/ia_measurements.correlations_coarse: the same measurement
+      on geomspace(6, 100, 11) (10 bins); the fits take xi~22 / wg+ from here.
+  - id: release_clustering_nz
+    label: "Clustering-z n(z) of the source bins (release)"
+    type: data
+    source: data/ggl/nz
+    description: |
+      Snapshot of analyses/ggl.clustering_nz: n(z) of the bgs and lrg source bins from
+      cross-correlations with DESI LRG / LRG+ELG / ELG reference slices, both scale
+      modes (theta and r_p), jackknife errors.
+  - id: release_magnification_alphas
+    label: "Magnification coefficients (release)"
+    type: data
+    source: data/ggl/magnification_alphas.csv
+    description: Snapshot of analyses/ggl.magnification_alphas.
+  - id: release_deltasigma
+    label: "Delta Sigma measurements (release)"
+    type: data
+    source: data/ggl/deltasigma_dr6
+    description: |
+      Snapshot of analyses/ggl.deltasigma: Delta Sigma(r_p) of the 10 BGS_RED_GMM_VLIM_SNR
+      lens bins (DR6 photo-z sources, real-h Planck18, 100-region jackknife).
+  - id: release_completeness
+    label: "Stellar-mass completeness curves (release)"
+    type: data
+    source: data/ggl/completeness
+    description: Snapshot of analyses/samples.mstar_completeness (Wright et al. 2017 turn-over).
+  - id: release_csmf_input_z5_effective
+    label: "CSMF inputs, z5 window / effective area (release, fiducial)"
+    type: data
+    source: data/ggl/csmf_input_z5_effective
+    description: |
+      Snapshot of analyses/ggl.csmf_input for ngal_zwindow=z5, ngal_area=effective:
+      per-bin Delta Sigma + covariance + n_gal (with jackknife error) + magnification
+      template, as consumed by the CSMF fitter. The paper's fiducial.
+  - id: release_csmf_input_z5_geometric
+    label: "CSMF inputs, z5 window / geometric area (release)"
+    type: data
+    source: data/ggl/csmf_input_z5_geometric
+    description: Same for ngal_area=geometric (the pre-2026-09-17 fiducial).
+  - id: release_csmf_input_full_geometric
+    label: "CSMF inputs, full window / geometric area (release)"
+    type: data
+    source: data/ggl/csmf_input_full_geometric
+    description: Same for the full-redshift-window n_gal (no z5 percentile cut).
+  - id: release_csmf_seed_fit
+    label: "CSMF minuit start point (release)"
+    type: data
+    source: data/ggl/csmf_fit_seed/csmf_fit_bgs_snr_dr6_rmin05_fhcap_g1prior_z5_m200m_minuit.npz
+    description: |
+      A converged minuit fit (M200m, Tinker08, z5 / geometric-area n_gal) used as the
+      Migrad start point. Cold starts on the volume-limited S/N sample land in a
+      documented bad basin (M1 railing); every production fit is seeded.
+
+# -------------------------------------------------------------------------- decisions
+decisions:
+  ngal_zwindow:
+    label: "n_gal redshift window"
+    tags: [ggl, abundance]
+    rationale: |
+      The abundance anchor n_gal of each lens bin is a comoving density over a
+      redshift window. With the fixed config z_min the low-z shell is overdense by
+      2-7 % relative to the shell around z_eff; a per-bin lower edge at the 5th
+      percentile of the bin's own n(z) lowers n_gal by 0-2 % coherently with mass
+      and removes ~4 units of chi2 from the CSMF fit with no parameter shift.
+    default: z5
+    options:
+      z5: { label: "5th-percentile lower edge", description: "compute_ngal --zlo-percentile 5" }
+      full: { label: "Fixed config z range", description: "compute_ngal without a percentile cut" }
+  ngal_area:
+    label: "n_gal area convention"
+    tags: [ggl, abundance]
+    rationale: |
+      The number density needs the area of the DESI x UNIONS overlap. The geometric
+      (density-ratio) area of the randoms, or the DESI DR1 n(z) convention that
+      multiplies it by the mean tile completeness FRAC_TLOBS_TILES (0.988 for BGS,
+      n_gal +1.2 %). Null at < 0.1 sigma on every SHMR parameter.
+    default: effective
+    options:
+      effective:
+        label: "Effective area (DESI n(z) convention)"
+        description: "compute_ngal --area-mode effective"
+        incompatible_with: ["ngal_zwindow.full"]
+      geometric: { label: "Geometric area", description: "compute_ngal --area-mode geometric" }
+  aia_mass_fit_space:
+    label: "A_IA - mass power-law fit metric"
+    tags: [stats]
+    rationale: |
+      The broken power law of Fig. 3 is fitted to 22 (A_IA, M_eff) points by MINUIT.
+      A chi2 in linear A_IA keeps the negative and low-S/N bins with their true
+      weight; a chi2 in log A_IA drops A_IA <= 0 bins and gives the three low-S/N
+      bins almost no weight through the linearised error sigma_A / (A ln 10).
+    default: linear
+    options:
+      linear: { label: "chi2 in linear A_IA" }
+      log: { label: "chi2 in log A_IA" }
+
+# ---------------------------------------------------------------------------- outputs
+outputs:
+  # --- re-exports from the sub-analyses -----------------------------------------
+  - id: nla_multipoles
+    from: ia_fits.nla_multipoles
+  - id: nla_projected
+    from: ia_fits.nla_projected
+  - id: tatt_blue
+    from: ia_fits.tatt_blue
+  - id: tatt_stats
+    from: ia_fits.tatt_stats
+  - id: csmf_fit
+    from: csmf.csmf_fit
+  - id: meff_relation
+    from: csmf.meff_relation
+  - id: csmf_chi2_decomposition
+    from: csmf.chi2_decomposition
+  - id: fig_csmf_bestfit
+    from: csmf.fig_csmf_bestfit
+  - id: fig_shmr
+    from: csmf.fig_shmr
+
+  # --- paper figures and tables ---------------------------------------------------
+  - id: fig3_aia_vs_mass
+    label: "Fig. 3: A_IA vs M* and M_eff (BGS red + LRG)"
+    type: figure
+    inputs: [nla_multipoles, meff_relation]
+    decisions: [aia_mass_fit_space]
+    description: |
+      A_IA of the BGS red and LRG stellar-mass bins against log M* (left) and against
+      log M_eff through the CSMF SHMR (right), with the continuous broken power law
+      (free pivot, 4-parameter MINUIT fit) and its 1-sigma band from the parameter
+      covariance. The fitted slopes, pivot and chi2 are printed by --report-powerlaw.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/plot_fig3_aia_mass_meff.py
+        --fits-dir {inputs.nla_multipoles}
+        --relation-npz {inputs.meff_relation}/aia_vs_meff_relation.npz
+        --fit-space {decisions.aia_mass_fit_space}
+        --report-powerlaw
+        --out {output}/fig3_aia_vs_mass_red.png
+  - id: fig4_bgsblue_corrfunc
+    label: "Fig. 4: BGS blue xi~22 / wg+ with NLA and TATT"
+    type: figure
+    inputs: [nla_multipoles, nla_projected, tatt_blue]
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/plot_ia_corrfunc.py --mode bgsblue
+        --multipole-dir {inputs.nla_multipoles}
+        --projected-dir {inputs.nla_projected}
+        --tatt-dir {inputs.tatt_blue}
+        --out {output}/fig4_bgsblue_corrfunc.png
+  - id: fig5_elg_corrfunc
+    label: "Fig. 5: ELG xi~22 / wg+ with NLA and TATT"
+    type: figure
+    inputs: [nla_multipoles, nla_projected, tatt_blue]
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/plot_ia_corrfunc.py --mode elg
+        --multipole-dir {inputs.nla_multipoles}
+        --projected-dir {inputs.nla_projected}
+        --tatt-dir {inputs.tatt_blue}
+        --out {output}/fig5_elg_corrfunc.png
+  - id: fig6_aia_vs_mass_blue
+    label: "Fig. 6: A_IA vs M* for blue galaxies, multipoles vs projected"
+    type: figure
+    inputs: [nla_multipoles, nla_projected]
+    description: The projected w_g+ amplitudes are sign-flipped to the multipole convention.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/plot_aia_mass_blue_compare.py
+        --multipole-dir {inputs.nla_multipoles}
+        --projected-dir {inputs.nla_projected}
+        --out {output}/fig6_aia_vs_mass_blue.png
+  - id: fig7_tatt_contours
+    label: "Fig. 7: TATT A_1 - A_2 posteriors of the blue samples"
+    type: figure
+    inputs: [tatt_blue]
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/plot_tatt_a1a2_gtc.py --dir {inputs.tatt_blue}
+        --out {output}/fig7_tatt_a1a2_contours.png
+  - id: fig_a1_bgs_multipoles
+    label: "Fig. A1: xi0 and xi~22 of the 12 BGS red bins with the NLA best fit"
+    type: figure
+    inputs: [nla_multipoles]
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/plot_appendix_multipoles.py
+        --fits-dir {inputs.nla_multipoles}
+        --pattern 'BGS_RED_GMM_*massbin*_multipoles_NLA_nautilus.npz'
+        --out-prefix {output}/figA1_bgs_snr
+  - id: fig_a_wgp_vs_multipoles
+    label: "Fig. A: LRG z1 (b1, A_IA) posteriors, projected vs multipoles"
+    type: figure
+    inputs: [nla_multipoles, nla_projected]
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/plot_wgp_vs_multipoles_gtc.py
+        --mult {inputs.nla_multipoles}/LRG_zmin_0.40_zmax_0.75_multipoles_NLA_nautilus.npz
+        --proj {inputs.nla_projected}/LRG_zmin_0.40_zmax_0.75_projected_NLA_nautilus.npz
+        --out {output}/figA_wgp_vs_multipoles_gtc.png
+  - id: tables_fits
+    label: "Appendix tables B.1-B.3 (LaTeX)"
+    type: table
+    inputs: [nla_multipoles, nla_projected, tatt_blue]
+    description: |
+      table_fits_red.tex (BGS red + LRG NLA multipole fits), table_fits_blue.tex
+      (blue + ELG, multipoles and projected) and table_fits_tatt.tex, generated
+      from the fit npz files: b1, A_IA (w_g+ quoted as -a1), chi2 / dof, z_IA.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/make_paper_tables.py
+        --multipole-dir {inputs.nla_multipoles}
+        --projected-dir {inputs.nla_projected}
+        --tatt-dir {inputs.tatt_blue}
+        --out-red {output}/table_fits_red.tex
+        --out-blue {output}/table_fits_blue.tex
+        --out-tatt {output}/table_fits_tatt.tex
+  - id: fig2_colour_redshift
+    label: "Fig. 2: g-r vs z of BGS red / blue and LRG"
+    type: figure
+    inputs: [sample_config]
+    description: |
+      Reads the DESI-only clustering catalogues built by analyses/samples.catalogues
+      (data/catalogues, regenerable from the DESI download without UNIONS).
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/plot_colour_redshift.py --config {inputs.sample_config}
+        --out {output}/fig2_colour_redshift.png
+
+# ------------------------------------------------------------------------- sub-analyses
+analyses:
+  samples:
+    path: ./analyses/samples
+  ia_measurements:
+    path: ./analyses/ia_measurements
+  ggl:
+    path: ./analyses/ggl
+  csmf:
+    path: ./analyses/csmf
+  ia_fits:
+    path: ./analyses/ia_fits

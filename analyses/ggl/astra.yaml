@@ -1,0 +1,137 @@
+# Sub-analysis: galaxy-galaxy lensing chain (magnification, clustering-z n(z), Delta Sigma,
+# abundance) up to the per-bin inputs of the CSMF halo-model fit. Needs the UNIONS
+# for_GGL shape sample; the release snapshots live under data/ggl.
+
+version: "0.0.14"
+id: ggl
+name: "Galaxy-galaxy lensing of the BGS red lens bins"
+description: |
+  Delta Sigma(r_p) of the volume-limited, S/N-binned BGS red lens sample
+  (BGS_RED_GMM_VLIM_SNR, 10 stellar-mass bins) with UNIONS for_GGL sources in the
+  0.70 < z_B < 1.25 bin, using a clustering-redshift n(z) of the sources, plus the
+  two side quantities the halo-model fit needs: the comoving number density n_gal of
+  each lens bin (abundance anchor) and the magnification-bias coefficients alpha of
+  each bin. The magnification alphas were computed to show that lens magnification is
+  a negligible contamination for the BGS lens bins (it is subtracted for LRG, whose
+  Delta Sigma is not fitted in the paper).
+
+inputs:
+  - id: catalogues
+    from: ../samples.catalogues
+  - id: unions_shape_samples
+    from: ../samples.unions_shape_samples
+  - id: ia_samples
+    from: ../samples.ia_samples
+  - id: vlim_lens_sample
+    from: ../samples.vlim_lens_sample
+  - id: combined_reference
+    from: ../samples.combined_reference
+  - id: footprint_area
+    from: ../samples.footprint_area
+  - id: sample_config
+    from: ../sample_config
+
+decisions:
+  nz_scale_mode:
+    label: "Clustering-z scale weighting"
+    tags: [ggl, redshifts]
+    rationale: |
+      The source-reference cross-correlation is compressed over a scale window before
+      the bias correction: a fixed angular window (1-10 arcmin) or a fixed comoving
+      transverse window (1.5-5 Mpc) at each reference redshift. The r_p window keeps
+      the same physical scales across the reference slices; it is what Delta Sigma
+      consumes.
+    default: rp
+    options:
+      rp: { label: "Fixed r_p window, 1.5-5 Mpc" }
+      theta: { label: "Fixed angular window, 1-10 arcmin" }
+  ngal_zwindow:
+    from: ../ngal_zwindow
+  ngal_area:
+    from: ../ngal_area
+
+outputs:
+  - id: magnification_alphas
+    label: "Magnification-bias coefficients alpha per lens bin"
+    type: data
+    inputs: [catalogues, ia_samples, sample_config]
+    description: |
+      alpha = d ln N / d kappa / 2 by finite differences: the photometry of every lens
+      is perturbed at 11 kappa steps of 0.002, the DESI BGS (Hahn et al. 2023) / LRG
+      (Zhou et al. 2023) target selection and the bin's stellar-mass window are
+      re-applied, and alpha is the kappa -> 0 intercept of a linear fit. Fibre
+      magnitudes assume a de Vaucouleurs profile (0.75 arcsec fibre).
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/compute_magnification.py --config {inputs.sample_config}
+        --out-dir {output}
+      resources: { memory: "20GB", time_limit: "2h" }
+  - id: clustering_nz
+    label: "Clustering-redshift n(z) of the source bins"
+    type: data
+    inputs: [ia_samples, combined_reference, unions_shape_samples, sample_config]
+    decisions: [nz_scale_mode]
+    description: |
+      n(z) of the bgs (0.70 < z_B < 1.25) and lrg (0.95 < z_B < 1.25) source bins from
+      the angular cross-correlation of the sources with DESI reference slices of width
+      0.05 in z (LRG at 0.40-0.80, LRG+ELG at 0.80-1.10, ELG at 1.10-1.60, three
+      non-overlapping references), corrected for the reference-bias evolution with a
+      CCL matter-clustering prediction, with 100-patch jackknife errors. Method and
+      validation follow the DESI clustering-redshift analysis of arXiv:2510.23565.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/estimate_nz.py --config {inputs.sample_config}
+        --scale-mode {decisions.nz_scale_mode} --out-dir {output}
+      resources: { cpus: 20, memory: "80GB", time_limit: "24h" }
+  - id: deltasigma
+    label: "Delta Sigma(r_p) of the 10 BGS red lens bins"
+    type: data
+    inputs: [vlim_lens_sample, unions_shape_samples, clustering_nz, sample_config]
+    decisions: [nz_scale_mode]
+    description: |
+      dsigma 1.2: comoving r_p in 14 log bins over 0.06-60 Mpc/h, Sigma_crit^-2
+      weighting with the clustering-z n(z) of the sources (smoothed by one grid cell,
+      clipped >= 0, renormalised), random subtraction, no boost correction (checked
+      to be a small-scale effect on the brightest bins only), 100-region jackknife.
+      The distance cosmology is the real-h Planck18 one (H0 = 67.66): with
+      table_n, H0 = 100 would inflate Delta Sigma by 1/h. Also stores the unit
+      magnification template (alpha = 2) that build_csmf_input scales by alpha - 1.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/compute_deltasigma.py --config {inputs.sample_config}
+        --samples BGS_RED_GMM_VLIM_SNR --nz-mode {decisions.nz_scale_mode}
+        --nz-dir {inputs.clustering_nz} --n-jobs 20 --out-dir {output}
+      resources: { cpus: 20, memory: "60GB", time_limit: "12h" }
+  - id: ngal
+    label: "Comoving number density n_gal per lens bin (abundance anchor)"
+    type: data
+    inputs: [vlim_lens_sample, footprint_area, sample_config]
+    decisions: [ngal_zwindow, ngal_area]
+    description: |
+      n_gal = sum(WEIGHT_COMP x WEIGHT_ZFAIL x WEIGHT_SYS) / V over the bin's redshift
+      window and the footprint area, i.e. the DESI DR1 n(z) convention (WEIGHT_CLUSTERING
+      would under-count by ~1.9x). The error is a 100-region jackknife. The anchor is
+      what breaks the SHMR high-mass-slope degeneracy of a Delta Sigma-only fit.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/compute_ngal.py --config {inputs.sample_config}
+        --samples BGS_RED_GMM_VLIM_SNR --zlo-percentile {decisions.ngal_zwindow}
+        --area-mode {decisions.ngal_area} --area-dir {inputs.footprint_area}
+        --out-dir {output}
+      resources: { memory: "32GB", time_limit: "2h" }
+  - id: csmf_input
+    label: "Per-bin CSMF fit inputs (Delta Sigma + n_gal + magnification)"
+    type: data
+    inputs: [deltasigma, ngal, magnification_alphas, sample_config]
+    decisions: [ngal_zwindow, ngal_area]
+    description: |
+      One npz per lens bin: r_p, Delta Sigma, covariance, n_gal +- error, alpha.
+      Magnification is NOT subtracted for BGS (config csmf.subtract_magnification
+      override: alpha - 1 is small for the BGS bins); the LRG path subtracts
+      (alpha - 1) x template. Release: data/ggl/csmf_input_<window>_<area>.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/build_csmf_input.py --config {inputs.sample_config}
+        --samples BGS_RED_GMM_VLIM_SNR --deltasigma-dir {inputs.deltasigma}
+        --ngal-dir {inputs.ngal} --alphas {inputs.magnification_alphas}/magnification_alphas.csv
+        --out-dir {output}

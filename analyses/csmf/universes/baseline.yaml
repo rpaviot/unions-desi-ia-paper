@@ -1,0 +1,9 @@
+id: baseline
+description: "Paper fiducial CSMF fit: M200m, Tinker10, r_p >= 0.5, Dvornik gamma1 prior, n_gal anchor, MINUIT"
+decisions:
+  mass_definition: "200m"
+  mass_function: tinker10
+  csmf_rp_min: "5"
+  gamma1_prior: gaussian
+  ngal_anchor: ngal
+  csmf_optimizer: minuit

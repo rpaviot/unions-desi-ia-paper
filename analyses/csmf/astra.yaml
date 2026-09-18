@@ -1,0 +1,195 @@
+# Sub-analysis: CSMF halo-model fit of Delta Sigma + n_gal -> SHMR -> M_eff relation
+#
+# Re-runnable from the released CSMF inputs (data/ggl/csmf_input_*) with the HOD_NRV
+# package (github.com/rpaviot/NRV_HOD @ unions-desi-ia-paper) in its own environment:
+# set HOD_PYTHON to that interpreter.
+
+version: "0.0.14"
+id: csmf
+name: "CSMF halo-model fit and the M* - M_eff relation"
+description: |
+  Joint fit of the 10 BGS red lens bins' Delta Sigma(r_p) and comoving number
+  densities with the analytical conditional stellar mass function (CSMF) halo model
+  of HOD_NRV (Dvornik et al. 2023 parametrisation: M0, M1, gamma1, gamma2, sigma_c,
+  alpha_s, b0, b1, with the concentration-feedback factors f_h, f_s capped at 1 and
+  the non-linear halo bias beta^NL from the Dark Emulator). The best fit gives the
+  stellar-to-halo mass relation and, per lens bin, the central-weighted effective
+  halo mass M_eff = <M_h>_cen, which maps the stellar-mass bins of the IA fits to
+  halo mass (Fig. 3).
+
+inputs:
+  - id: csmf_input_z5_effective
+    from: ../release_csmf_input_z5_effective
+  - id: csmf_input_z5_geometric
+    from: ../release_csmf_input_z5_geometric
+  - id: csmf_input_full_geometric
+    from: ../release_csmf_input_full_geometric
+  - id: csmf_seed_fit
+    from: ../release_csmf_seed_fit
+  - id: sample_config
+    from: ../sample_config
+
+decisions:
+  ngal_zwindow:
+    from: ../ngal_zwindow
+  ngal_area:
+    from: ../ngal_area
+  mass_definition:
+    label: "Halo mass definition"
+    tags: [halo-model]
+    rationale: |
+      The Dark Emulator beta^NL and the Tinker mass function / bias are Delta_m
+      native, and Fortuna et al. 2025's M_eff are M200m, so M200m lines the
+      comparisons up. The earlier 200c fits fed 200c masses to a 200b emulator;
+      switching moved log M0 by +0.07 and log M1 by +0.14 (the only knob that moved
+      the SHMR), i.e. +0.09-0.11 dex in M_eff.
+    default: 200m
+    options:
+      200m: { label: "M200m (200 x mean density)" }
+      200c: { label: "M200c (200 x critical density)" }
+  mass_function:
+    label: "Halo mass function and bias"
+    tags: [halo-model]
+    rationale: |
+      Tinker et al. 2010 mass function with the matching Tinker 2010 bias, or the
+      Tinker et al. 2008 mass function. Null at < 0.1 sigma on every SHMR parameter
+      (M_eff +0.01-0.02 dex).
+    default: tinker10
+    options:
+      tinker10: { label: "Tinker+10 HMF" }
+      tinker08: { label: "Tinker+08 HMF" }
+  csmf_rp_min:
+    label: "Delta Sigma small-scale cut"
+    tags: [scales]
+    rationale: |
+      The bins below r_p = 0.5 Mpc/h sit in the 1-halo regime where baryonic effects
+      and the concentration model dominate; dropping them costs little constraining
+      power and removed the need for f_h > 1 (uncapped f_h reached 1.87 with the
+      0.1 cut, which is unphysical: haloes more concentrated than dark matter).
+    default: "5"
+    options:
+      "5": { label: "r_p >= 0.5 Mpc/h (fiducial)" }
+      "1": { label: "r_p >= 0.1 Mpc/h" }
+  gamma1_prior:
+    label: "Prior on the low-mass SHMR slope gamma1"
+    tags: [priors]
+    rationale: |
+      gamma1 is not constrained by Delta Sigma above the completeness limit of the
+      lens sample; the fiducial adopts the Gaussian prior gamma1 = 7.10 +- 2.0 of
+      Dvornik et al. 2023 (their 2x2pt + SMF fit), the alternative is the package's
+      flat prior on [2.5, 15].
+    default: gaussian
+    options:
+      gaussian: { label: "Gaussian 7.10 +- 2.0 (Dvornik+23)" }
+      flat: { label: "Flat [2.5, 15]" }
+  ngal_anchor:
+    label: "Abundance anchor in the likelihood"
+    tags: [likelihood]
+    rationale: |
+      Fitting Delta Sigma alone leaves the high-mass slope of the SHMR degenerate with
+      the satellite fraction and biases the recovered M_h at fixed M* by 0.1-0.3
+      dex; adding a chi2 term on the measured n_gal of each bin breaks it.
+    default: ngal
+    options:
+      ngal: { label: "Delta Sigma + n_gal" }
+      none: { label: "Delta Sigma only" }
+  csmf_optimizer:
+    label: "Optimizer / sampler"
+    tags: [stats]
+    rationale: |
+      MINUIT (Migrad + Hesse, seeded from a converged fit and run twice so the
+      second pass starts from the reported minimum) gives the quoted best fit and
+      parabolic errors in ~15 min; the nautilus nested sampler gives the full
+      posterior at ~50x the cost and is used to check the MINUIT errors.
+    default: minuit
+    options:
+      minuit: { label: "MINUIT (two seeded passes)" }
+      nautilus: { label: "nautilus nested sampling" }
+
+outputs:
+  - id: csmf_fit
+    label: "CSMF best fit (SHMR parameters)"
+    type: data
+    inputs: [csmf_input_z5_effective, csmf_input_z5_geometric, csmf_input_full_geometric,
+             csmf_seed_fit, sample_config]
+    decisions: [ngal_zwindow, ngal_area, mass_definition, mass_function, csmf_rp_min,
+                gamma1_prior, ngal_anchor, csmf_optimizer]
+    description: |
+      csmf_fit_minuit.npz (or _nautilus): best-fit parameters, covariance, chi2 split,
+      recorded mass definition and halo-model kwargs. Paper fiducial: chi2 = 134.7
+      for 100 dof (Delta Sigma 107.6 + n_gal 26.1 + prior 1.0), log M0 = 10.67,
+      log M1 = 11.12, gamma2 = 0.20, sigma_c = 0.25.
+    recipe:
+      command: >-
+        ${{HOD_PYTHON:-python}} src/fit_csmf.py --config {inputs.sample_config}
+        --samples BGS_RED_GMM_VLIM_SNR
+        --in-dir data/ggl/csmf_input_{decisions.ngal_zwindow}_{decisions.ngal_area}
+        --method {decisions.csmf_optimizer} --seed 42
+        --rp-min 0.{decisions.csmf_rp_min}
+        --mass-def MassDef{decisions.mass_definition}
+        --mass-function {decisions.mass_function} --halo-bias tinker10
+        --gamma1-prior {decisions.gamma1_prior} --ngal-anchor {decisions.ngal_anchor}
+        --start-from {inputs.csmf_seed_fit}
+        --label pass1 --out {output}/csmf_fit_pass1.npz &&
+        ${{HOD_PYTHON:-python}} src/fit_csmf.py --config {inputs.sample_config}
+        --samples BGS_RED_GMM_VLIM_SNR
+        --in-dir data/ggl/csmf_input_{decisions.ngal_zwindow}_{decisions.ngal_area}
+        --method {decisions.csmf_optimizer} --seed 42
+        --rp-min 0.{decisions.csmf_rp_min}
+        --mass-def MassDef{decisions.mass_definition}
+        --mass-function {decisions.mass_function} --halo-bias tinker10
+        --gamma1-prior {decisions.gamma1_prior} --ngal-anchor {decisions.ngal_anchor}
+        --start-from {output}/csmf_fit_pass1.npz
+        --label final --out {output}/csmf_fit.npz
+      resources: { cpus: 20, memory: "110GB", time_limit: "6h" }
+  - id: meff_relation
+    label: "M* - M_eff relation of the lens bins"
+    type: data
+    inputs: [csmf_fit, csmf_input_z5_effective, csmf_input_z5_geometric,
+             csmf_input_full_geometric, sample_config]
+    decisions: [ngal_zwindow, ngal_area]
+    description: |
+      aia_vs_meff_relation.npz: rel_logmstar (median log M* of each lens bin) and
+      rel_logmeff (log of the central-weighted effective halo mass of the best-fit
+      halo model in that bin, h^-1 Msun), 10 nodes; interpolated (log-log, linearly
+      extrapolated) to map the IA stellar-mass bins to M_eff.
+    recipe:
+      command: >-
+        ${{HOD_PYTHON:-python}} src/csmf_meff_relation.py --config {inputs.sample_config}
+        --fit-npz {inputs.csmf_fit}/csmf_fit.npz
+        --in-dir data/ggl/csmf_input_{decisions.ngal_zwindow}_{decisions.ngal_area}
+        --samples BGS_RED_GMM_VLIM_SNR --out {output}/aia_vs_meff_relation.npz
+  - id: chi2_decomposition
+    label: "chi2 decomposition of the fit (Delta Sigma / n_gal / prior, per bin)"
+    type: metric
+    inputs: [csmf_fit, csmf_input_z5_effective, csmf_input_z5_geometric,
+             csmf_input_full_geometric, sample_config]
+    decisions: [ngal_zwindow, ngal_area, csmf_rp_min, gamma1_prior]
+    recipe:
+      command: >-
+        ${{HOD_PYTHON:-python}} src/decompose_csmf_chi2.py --config {inputs.sample_config}
+        --fit-npz {inputs.csmf_fit}/csmf_fit.npz
+        --in-dir data/ggl/csmf_input_{decisions.ngal_zwindow}_{decisions.ngal_area}
+        --samples BGS_RED_GMM_VLIM_SNR --rp-min 0.{decisions.csmf_rp_min}
+        --gamma1-prior {decisions.gamma1_prior} > {output}/chi2_decomposition.txt
+  - id: fig_csmf_bestfit
+    label: "Fig. B.3: Delta Sigma per bin with the best-fit halo model"
+    type: figure
+    inputs: [csmf_fit, csmf_input_z5_effective, csmf_input_z5_geometric,
+             csmf_input_full_geometric, sample_config]
+    decisions: [ngal_zwindow, ngal_area, csmf_rp_min]
+    recipe:
+      command: >-
+        ${{HOD_PYTHON:-python}} src/plot_csmf_bestfit.py --config {inputs.sample_config}
+        --fit-npz {inputs.csmf_fit}/csmf_fit.npz
+        --in-dir data/ggl/csmf_input_{decisions.ngal_zwindow}_{decisions.ngal_area}
+        --samples BGS_RED_GMM_VLIM_SNR --rp-min 0.{decisions.csmf_rp_min} --paper
+        --out {output}/figB3_deltasigma_csmf_bestfit.png
+  - id: fig_shmr
+    label: "Fig. B.2: the stellar-to-halo mass relation vs the literature"
+    type: figure
+    inputs: [csmf_fit]
+    recipe:
+      command: >-
+        ${{HOD_PYTHON:-python}} src/plot_shmr_appendix.py --fit-npz {inputs.csmf_fit}/csmf_fit.npz
+        --out {output}/figB2_shmr_literature.png

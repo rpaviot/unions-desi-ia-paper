@@ -1,0 +1,6 @@
+id: baseline
+description: "Fiducial measurement: random-init k-means patches, FKP on, refitted BGS weights"
+decisions:
+  jackknife_tessellation: random
+  fkp_weights: fkp
+  bgs_sysweights: recomputed
