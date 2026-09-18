@@ -35,11 +35,20 @@ from HOD_NRV.HOD_analytical.sampler import (  # noqa: E402
 )
 
 
+def ccl_name(name):
+    """CCL halo-model class names are CamelCase (Tinker10, Duffy08); accept the
+    lower-case decision ids of the ASTRA spec (tinker10 -> Tinker10)."""
+    name = str(name)
+    return name if name[:1].isupper() else name[:1].upper() + name[1:]
+
+
 def build_fitter(cfg, args):
     csmf = cfg["csmf"]
     dest = Path(cfg["dest"])
     in_name = getattr(args, "in_name", None)
     in_dir = (dest / "ggl" / in_name) if in_name else (dest / csmf["out_subdir"])
+    if getattr(args, "in_dir", None):          # explicit directory wins (ASTRA recipes)
+        in_dir = Path(args.in_dir)
 
     beta_nl = bool(csmf.get("include_beta_nl", False)) and not args.no_beta_nl
     beta_nl_opts = dict(csmf.get("beta_nl", {}))
@@ -55,6 +64,9 @@ def build_fitter(cfg, args):
 
     # n_gal abundance anchor: CLI --fit-ngal/--no-fit-ngal wins over config csmf.fit_ngal.
     fit_ngal = csmf.get("fit_ngal", False) if args.fit_ngal is None else args.fit_ngal
+    anchor = getattr(args, "ngal_anchor", None)
+    if anchor is not None:                      # --ngal-anchor ngal|none wins over both
+        fit_ngal = (anchor == "ngal")
     observables = ["DeltaSigma"] + (["ngal"] if fit_ngal else [])
     if fit_ngal:
         print("[observables] DeltaSigma + n_gal (abundance anchor ON)", flush=True)
@@ -75,7 +87,7 @@ def build_fitter(cfg, args):
                      ("concentration", "concentration")):
         val = getattr(args, arg, None)
         if val:
-            halo_model_kwargs[key] = val
+            halo_model_kwargs[key] = ccl_name(val)
     if halo_model_kwargs:
         print(f"[halo model] overrides: {halo_model_kwargs}", flush=True)
 
@@ -117,7 +129,8 @@ def build_fitter(cfg, args):
     # package honours this in de/minuit/nautilus (minuit adds it as a 0.5*z^2
     # penalty). Precedence: --gamma1-flat > CLI mean/std > config csmf.gamma1_prior.
     priors = dict(DEFAULT_CSMF_PRIORS)
-    g1 = {} if args.gamma1_flat else dict(csmf.get("gamma1_prior") or {})
+    gamma1_flat = args.gamma1_flat or getattr(args, "gamma1_prior", None) == "flat"
+    g1 = {} if gamma1_flat else dict(csmf.get("gamma1_prior") or {})
     if args.gamma1_mean is not None:
         g1["mean"] = args.gamma1_mean
     if args.gamma1_std is not None:
@@ -147,6 +160,10 @@ def main():
                    help="Override the csmf-input subdir under <dest>/ggl (default: "
                         "csmf.out_subdir). Use e.g. 'csmf_input_z5' for the "
                         "percentile-zmin n_gal build.")
+    p.add_argument("--in-dir", default=None, metavar="DIR",
+                   help="Directory holding the csmf_<sample>_massbin{i}.npz inputs; "
+                        "overrides --in-name / config (used by the ASTRA recipes, e.g. "
+                        "data/ggl/csmf_input_z5_effective)")
     p.add_argument("--rp-min", type=float, default=None, help="[Mpc/h]; default from config")
     p.add_argument("--rp-max", type=float, default=None, help="[Mpc/h]; default from config")
     p.add_argument("--no-beta-nl", action="store_true", help="Disable β^NL even if config enables it")
@@ -171,12 +188,20 @@ def main():
                    help="Std of the Gaussian prior on gamma1 (overrides config)")
     p.add_argument("--gamma1-flat", action="store_true",
                    help="Force the flat [2.5,15] gamma1 prior, ignoring any config Gaussian")
+    p.add_argument("--gamma1-prior", choices=["gaussian", "flat"], default=None,
+                   help="Decision-style switch: 'gaussian' = the config Gaussian "
+                        "(Dvornik+23, 7.10 +- 2.0), 'flat' = the package flat prior "
+                        "(same as --gamma1-flat)")
     p.add_argument("--fit-ngal", dest="fit_ngal", action="store_true", default=None,
                    help="Add the galaxy number-density (abundance) anchor to the "
                         "likelihood (needs n_gal in the csmf_input npz). Default: "
                         "config csmf.fit_ngal.")
     p.add_argument("--no-fit-ngal", dest="fit_ngal", action="store_false",
                    help="Disable the n_gal anchor even if config enables it.")
+    p.add_argument("--ngal-anchor", choices=["ngal", "none"], default=None,
+                   help="Decision-style switch for the abundance anchor: 'ngal' = "
+                        "Delta Sigma + n_gal, 'none' = Delta Sigma only (wins over "
+                        "--fit-ngal / config)")
     p.add_argument("--drop-massbins", nargs="*", default=None, metavar="NAME:i[,j]",
                    help="Exclude mass bins per sample (highest = last index), e.g. "
                         "--drop-massbins BGS_RED_GMM:9 LRG:3")

@@ -164,10 +164,12 @@ def npz_path(corr_dir, sample, stat):
     return Path(corr_dir) / sample["out_tracer"] / f"{sample['stem']}_{suffix}.npz"
 
 
-def load_sample_properties(cfg, stem):
-    """sigma_e / n_eff / r_mean etc. from the sample_properties JSON, if present."""
-    props_json = (Path(cfg["dest"]) / cfg["ia_samples"]["out_subdir"]
-                  / "sample_properties" / f"{stem}.json")
+def load_sample_properties(cfg, stem, props_dir=None):
+    """sigma_e / n_eff / r_mean etc. from the sample_properties JSON, if present.
+    ``props_dir`` (--properties-dir) overrides <dest>/<ia>/sample_properties."""
+    props_dir = (Path(props_dir) if props_dir else
+                 Path(cfg["dest"]) / cfg["ia_samples"]["out_subdir"] / "sample_properties")
+    props_json = props_dir / f"{stem}.json"
     if props_json.exists():
         with open(props_json) as fh:
             return json.load(fh)
@@ -303,8 +305,8 @@ def build_likelihood(data, args, model_config, cov=None, data_gp=None):
                  DICT_COSMO["A_s"], DICT_COSMO["n_s"], h, zeff]
 
     def _make_model(z):
-        return TwoPointModel(cosmology[:-1] + [z], model_config, computation=[],
-                             do_rsd=True, pimax=100, include_B=True,
+        return TwoPointModel(cosmology[:-1] + [z], model_config,
+                             do_rsd=True, pimax=100,
                              bin_avg=args.bin_avg,
                              evolve_bias=False, rp_min_wedge=args.rp_min_wedge,
                              n_mu_wedge=101)
@@ -336,7 +338,7 @@ def build_likelihood(data, args, model_config, cov=None, data_gp=None):
         funcs = {"xi0e": model.compute_xi_gg_wedge_monopole,
                  "xi2p": model_ia.compute_xi_gi_wedge_quadrupole}
     else:
-        funcs = {"WGG": model.compute_wgg_v2, "WGP": model_ia.compute_wgp_v2}
+        funcs = {"WGG": model.compute_wgg, "WGP": model_ia.compute_wgp}
 
     r_list, edges_list, vectors, cov_meas = load_blocks(data, data_gp, args.stat,
                                                         args.raw_cov)
@@ -355,8 +357,9 @@ def build_likelihood(data, args, model_config, cov=None, data_gp=None):
             raise SystemExit(f"--prior: unknown parameter {name!r}; "
                              f"expected one of {sorted(prior)}")
         prior[name] = (float(lo), float(hi))
-    if getattr(args, "fix_bta", None) is not None:
-        prior["bTA"] = float(args.fix_bta)  # fix the TA density weighting (0 = off)
+    fix_bta = getattr(args, "fix_bta", None)
+    if fix_bta is not None and str(fix_bta).lower() != "free":
+        prior["bTA"] = float(fix_bta)  # fix the TA density weighting (0 = off)
     if getattr(args, "fix_b2", False):
         prior["b2"] = 0.0   # drop the nonlinear-bias term (linear bias only)
     lik.set_prior(prior)
@@ -480,7 +483,7 @@ def fit_sample(sample, npz_file, cfg, args, npz_file_gp=None):
     else:
         pred_full = lik.get_bestfit(*bf, r_list=r_full)
 
-    props = load_sample_properties(cfg, sample["stem"])
+    props = load_sample_properties(cfg, sample["stem"], getattr(args, "properties_dir", None))
 
     out = {
         "stat": args.stat, "model": args.model, "sampler": args.sampler,
@@ -561,10 +564,12 @@ def main():
     p.add_argument("--config", default=str(CONFIG))
     p.add_argument("--stat", choices=["multipoles", "projected"], default="multipoles")
     p.add_argument("--model", choices=["NLA", "TATT"], default="NLA")
-    p.add_argument("--fix-bta", nargs="?", type=float, const=0.0, default=None,
+    p.add_argument("--fix-bta", nargs="?", const="0", default=None,
                    metavar="VALUE",
                    help="fix the TATT tidal-alignment bias bTA (bare flag: 0, i.e. "
-                        "TA+TT with no density weighting; or give a value, e.g. 1)")
+                        "TA+TT with no density weighting; or give a value, e.g. 1; "
+                        "'free' leaves bTA free -- the decision-style form of not "
+                        "passing the flag)")
     p.add_argument("--fix-b2", action="store_true",
                    help="fix the nonlinear galaxy bias b2 to 0 (linear bias only)")
     p.add_argument("--prior", action="append", nargs=3, default=None,
@@ -652,6 +657,9 @@ def main():
                         "same n_patches / tessellation / weighting) from an error to "
                         "a warning")
     p.add_argument("--out-dir", default=str(REPO / "results" / "fits"))
+    p.add_argument("--properties-dir", default=None, metavar="DIR",
+                   help="directory of the sample_properties <stem>.json files (default: "
+                        "<dest>/<ia_samples.out_subdir>/sample_properties)")
     p.add_argument("--nlive", type=int, default=3000, help="nautilus live points")
     p.add_argument("--neff", type=int, default=50000, help="nautilus effective samples")
     p.add_argument("--nwalkers", type=int, default=32, help="emcee walkers")

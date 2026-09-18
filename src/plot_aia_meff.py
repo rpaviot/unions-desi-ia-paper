@@ -84,22 +84,25 @@ def p99_relation(cfg):
     return logmed, logMeff
 
 
-def label_relation(cfg, label, samples, in_name=None):
-    """(logM*_med, logMeff) from any saved CSMF minuit fit (fit_csmf label).
+def label_relation(cfg, label, samples, in_name=None, fit_npz=None, in_dir=None):
+    """(logM*_med, logMeff) from any saved CSMF minuit fit (fit_csmf label, or an
+    explicit ``fit_npz`` path with the csmf-input directory ``in_dir`` it was run on).
 
     Same machinery as p99_relation but with the fit's own mass bins as built
     (no p99 re-capping -- the S/N samples are already capped at logM*=11.40 by
     construction). beta_nl OFF (M_eff doesn't depend on it)."""
     dest = Path(cfg["dest"])
-    fit = np.load(dest / "ggl" / "csmf_fit" / f"csmf_fit_{label}_minuit.npz",
-                  allow_pickle=True)
+    if fit_npz is None:
+        fit_npz = dest / "ggl" / "csmf_fit" / f"csmf_fit_{label}_minuit.npz"
+    label = label or Path(fit_npz).stem
+    fit = np.load(fit_npz, allow_pickle=True)
     # Halo mass definition the fit was run with (recorded by fit_csmf.py since
     # 2026-09-17; older fits = the package default MassDef200c). M_eff must be
     # evaluated with the same definition.
     mass_def = str(fit["mass_definition"]) if "mass_definition" in fit else "MassDef200c"
     print(f"[{label}] halo mass definition: {mass_def}")
     args = Namespace(
-        samples=samples, in_name=in_name, no_beta_nl=True,
+        samples=samples, in_name=in_name, in_dir=in_dir, no_beta_nl=True,
         beta_nl_log_m_min=12.0, fit_ngal=None, rp_min=0.5, rp_max=None,
         verbose=False, gamma1_flat=True, gamma1_mean=None, gamma1_std=None,
         drop_massbins=None, fix=None, mass_def=mass_def,

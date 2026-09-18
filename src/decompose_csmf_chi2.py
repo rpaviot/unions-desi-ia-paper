@@ -33,13 +33,18 @@ def main():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--config", default=str(gu.CONFIG))
-    p.add_argument("--label", required=True)
+    p.add_argument("--label", default=None,
+                   help="fit label (locates <dest>/ggl/csmf_fit/csmf_fit_<label>_<method>.npz "
+                        "unless --fit-npz is given)")
     p.add_argument("--method", default="minuit", choices=["minuit", "de"])
     p.add_argument("--samples", nargs="+", default=["BGS_RED_GMM_VLIM_SNR"])
     p.add_argument("--rp-min", type=float, default=None,
                    help="[Mpc/h] scale cut the fit was run with (default: config)")
     p.add_argument("--in-name", default=None,
                    help="csmf-input subdir override the fit was run with (fit_csmf --in-name)")
+    p.add_argument("--in-dir", default=None, metavar="DIR",
+                   help="csmf-input directory the fit was run with (fit_csmf --in-dir); "
+                        "wins over --in-name")
     p.add_argument("--fit-npz", default=None,
                    help="explicit path to the saved fit npz (default: "
                         "<dest>/ggl/csmf_fit/csmf_fit_<label>_<method>.npz). Needed for "
@@ -47,7 +52,11 @@ def main():
                         "PIP/IIP arm in pip_snr/ggl/csmf_fit/.")
     p.add_argument("--gamma1-flat", action="store_true",
                    help="set if the fit used --gamma1-flat (no Gaussian penalty)")
+    p.add_argument("--gamma1-prior", choices=["gaussian", "flat"], default=None,
+                   help="decision-style form of the same switch (fit_csmf --gamma1-prior)")
     args = p.parse_args()
+    if args.fit_npz is None and args.label is None:
+        p.error("give --fit-npz or --label")
 
     cfg = gu.load_config(args.config)
     dest = Path(cfg["dest"])
@@ -65,9 +74,10 @@ def main():
 
     bf_args = SimpleNamespace(
         config=args.config, samples=args.samples,
-        rp_min=args.rp_min, rp_max=None, in_name=args.in_name, no_beta_nl=False, beta_nl_log_m_min=None,
+        rp_min=args.rp_min, rp_max=None, in_name=args.in_name, in_dir=args.in_dir,
+        no_beta_nl=False, beta_nl_log_m_min=None,
         fix=None, drop_massbins=None, verbose=False,
-        fit_ngal=True, gamma1_flat=args.gamma1_flat,
+        fit_ngal=True, gamma1_flat=args.gamma1_flat, gamma1_prior=args.gamma1_prior,
         gamma1_mean=None, gamma1_std=None,
         # halo mass definition recorded in the fit npz (older fits: 200c default)
         mass_def=str(d["mass_definition"]) if "mass_definition" in d else None,
@@ -81,7 +91,7 @@ def main():
     ng_model = np.asarray(fitter._halo_model.ngal()).ravel()
 
     print(f"\n{'='*72}")
-    print(f"chi2 decomposition — {args.label} ({args.method})")
+    print(f"chi2 decomposition — {args.label or fit_npz.name} ({args.method})")
     print(f"{'='*72}")
     hdr = f"{'sample/bin':22s} {'z_eff':>6s} {'npts':>4s} {'chi2_DS':>9s} {'DS/npts':>8s} {'chi2_ngal':>10s}"
     print(hdr)

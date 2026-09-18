@@ -53,6 +53,11 @@ def main():
     p.add_argument("--ncols", type=int, default=4, help="panel columns")
     p.add_argument("--in-name", default=None,
                    help="csmf-input subdir the fit used (fit_csmf --in-name)")
+    p.add_argument("--in-dir", default=None, metavar="DIR",
+                   help="csmf-input directory the fit used (fit_csmf --in-dir); wins over --in-name")
+    p.add_argument("--fit-npz", default=None,
+                   help="explicit path to the fit npz (default: "
+                        "<dest>/ggl/csmf_fit/csmf_fit_<label>_<method>.npz)")
     p.add_argument("--paper", action="store_true",
                    help="paper styling: PLOT13NRV rcParams, no suptitle, "
                         "compact panels, dpi 300 + bbox tight")
@@ -71,7 +76,8 @@ def main():
 
     cfg = gu.load_config(args.config)
     dest = Path(cfg["dest"])
-    fit_npz = dest / "ggl" / "csmf_fit" / f"csmf_fit_{args.label}_{args.method}.npz"
+    fit_npz = (Path(args.fit_npz) if args.fit_npz
+               else dest / "ggl" / "csmf_fit" / f"csmf_fit_{args.label}_{args.method}.npz")
     if not fit_npz.exists():
         sys.exit(f"fit file not found: {fit_npz}")
 
@@ -83,7 +89,7 @@ def main():
 
     # Rebuild the fitter exactly like fit_csmf.py (build_fitter takes a namespace).
     bf_args = SimpleNamespace(
-        config=args.config, samples=args.samples, in_name=args.in_name,
+        config=args.config, samples=args.samples, in_name=args.in_name, in_dir=args.in_dir,
         rp_min=args.rp_min, rp_max=args.rp_max, no_beta_nl=args.no_beta_nl,
         fix=args.fix, drop_massbins=args.drop_massbins, verbose=args.verbose,
         # n_gal anchor + gamma1 prior only touch the likelihood, not the dSigma

@@ -43,9 +43,8 @@ METHOD = "minuit"
 # PIP/IIP companion fit: identical configuration (minuit, rp_min 0.5, f_h<=1 cap,
 # Gaussian gamma1 prior, n_gal anchor, z5 window, 10 VLIM_SNR bins); the only
 # difference is the DESI fibre-collision treatment of the lenses and randoms.
-# Overlaid with --pip.
-PIP_NPZ = Path("/n09data/rpaviot/DESIxUnions/pip_snr/ggl/csmf_fit/"
-               "csmf_fit_pip_snr_rmin05_fhcap_g1prior_z5_pass2_minuit.npz")
+# Overlaid with --pip PATH (the fit is not part of the release: the PIP/IIP
+# appendix was reduced to a qualitative statement, 2026-08).
 
 # --- Zu & Mandelbaum 2015 eq. 38 (comment coefficients in their source) ------
 ZM15 = dict(a=1.821, b=11.177, c=4.413, d=11.115, e=23.366, f=-0.121)
@@ -79,13 +78,17 @@ def asym_log_err(m, lo, hi):
 def main():
     import argparse
     ap = argparse.ArgumentParser()
-    ap.add_argument("--pip", action="store_true",
-                    help="overlay the inverse-probability-weighted (PIP/IIP) fit")
+    ap.add_argument("--pip", default=None, metavar="NPZ",
+                    help="overlay the inverse-probability-weighted (PIP/IIP) companion fit")
     ap.add_argument("--out", default=None)
     ap.add_argument("--label", default=LABEL, help="CSMF minuit fit label")
+    ap.add_argument("--fit-npz", default=None,
+                    help="explicit path to the fit npz (default: "
+                         "<dest>/ggl/csmf_fit/csmf_fit_<label>_minuit.npz)")
+    ap.add_argument("--config", default=str(gu.CONFIG))
     args = ap.parse_args()
 
-    cfg = gu.load_config(str(gu.CONFIG))
+    cfg = gu.load_config(args.config)
     dest = Path(cfg["dest"])
     rng = np.random.default_rng(42)
     logMh = np.linspace(11.0, 15.0, 300)
@@ -94,14 +97,15 @@ def main():
     fig, ax = plt.subplots(figsize=(3.5, 3.5))
 
     # This work
-    fit_npz = dest / "ggl" / "csmf_fit" / f"csmf_fit_{args.label}_{METHOD}.npz"
+    fit_npz = (Path(args.fit_npz) if args.fit_npz
+               else dest / "ggl" / "csmf_fit" / f"csmf_fit_{args.label}_{METHOD}.npz")
     y, lo, hi, pb = load_curve(fit_npz, METHOD, logMh, n_mc, rng)
     ax.fill_betweenx(logMh, lo, hi, color="C0", alpha=0.25, lw=0)
     ax.plot(y, logMh, "C0", lw=1.8,
             label="This work (BGS)" + (", close-pair" if args.pip else ""))
 
     if args.pip:
-        yq, loq, hiq, _ = load_curve(PIP_NPZ, METHOD, logMh, n_mc,
+        yq, loq, hiq, _ = load_curve(Path(args.pip), METHOD, logMh, n_mc,
                                      np.random.default_rng(43))
         ax.fill_betweenx(logMh, loq, hiq, color="C4", alpha=0.25, lw=0)
         ax.plot(yq, logMh, color="C4", ls=":", lw=1.8,
