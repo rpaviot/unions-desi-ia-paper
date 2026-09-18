@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --time=02:00:00
 #SBATCH --mem=110G
-#SBATCH --output=logs/validate_cucount_%j.out
+#SBATCH --output=results/logs/validate_cucount_%j.out
 # Validation of src/compute_correlations_cucount.py against the released LRG z1 multipoles
 # (the paper-directory equivalent of ~/unions_IA cross-check job 870968).
 #   sbatch scripts/validate_cucount_measurement.slurm            (from the project root)

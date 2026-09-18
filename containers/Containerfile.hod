@@ -18,5 +18,10 @@ RUN pip install --no-cache-dir "numpy==2.4.6" "scipy==1.17.1" "pandas==3.0.3" \
     && pip install --no-cache-dir \
         "git+https://github.com/rpaviot/NRV_HOD.git@unions-desi-ia-paper"
 
-COPY . .
+# Only the code and its configuration go into the image: lc content-addresses the
+# image from the COPY sources and folds that into every output's code_version, so
+# copying the whole tree (data, logs, notes) would mark all outputs stale on any edit.
+COPY src/ src/
+COPY config/ config/
+COPY scripts/ scripts/
 ENV HOD_PYTHON=python

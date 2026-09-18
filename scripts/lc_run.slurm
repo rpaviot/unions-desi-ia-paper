@@ -5,14 +5,14 @@
 #SBATCH --cpus-per-task=20
 #SBATCH --time=12:00:00
 #SBATCH --mem=110G
-#SBATCH --output=logs/lc_run_%j.out
+#SBATCH --output=results/logs/lc_run_%j.out
 # Materialise ASTRA outputs through `lc run` inside a SLURM allocation (lc dispatches
 # its Dask workers with srun when it finds itself in one). Usage, from the project root:
 #
 #   sbatch --export=ALL,OUTPUTS="csmf_fit meff_relation",UNIVERSE=baseline scripts/lc_run.slurm
 #   sbatch --export=ALL,OUTPUTS="nla_multipoles" --time=24:00:00 scripts/lc_run.slurm
 #
-# IA_PYTHON / HOD_PYTHON are inherited from the submitting shell (--export=ALL) or
+# Logs land in results/logs/ (create it first: sbatch does not). IA_PYTHON / HOD_PYTHON are inherited from the submitting shell (--export=ALL) or
 # default to the two local venvs below.
 set -euo pipefail
 module purge

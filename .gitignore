@@ -22,4 +22,3 @@ data/hpmaps
 data/unions
 data/ggl/reference
 data/ia/*.parquet
-logs/

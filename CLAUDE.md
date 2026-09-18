@@ -31,7 +31,10 @@ environment variables (default `python`):
 `requirements.txt` + `Containerfile` (IA) and `containers/Containerfile.hod` document the
 same two stacks for people with docker. On the cluster `lc run` must sit inside a SLURM
 allocation (it srun-launches its Dask workers): `sbatch --export=ALL,OUTPUTS="csmf_fit"
-scripts/lc_run.slurm` (see the header for the options). Logs land in `logs/` (ignored).
+scripts/lc_run.slurm` (see the header for the options). Logs land in `results/logs/` (ignored,
+and outside the image-identity hash: the Containerfile COPYs only src/ config/ scripts/,
+because lc folds the hash of the COPY sources into every output's code_version -- a
+log or README edit under a `COPY . .` would mark every output stale).
 
 ## Runnable boundary
 

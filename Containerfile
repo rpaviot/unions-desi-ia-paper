@@ -12,5 +12,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Only the code and its configuration go into the image: lc content-addresses the
+# image from the COPY sources and folds that into every output's code_version, so
+# copying the whole tree (data, logs, notes) would mark all outputs stale on any edit.
+COPY src/ src/
+COPY config/ config/
+COPY scripts/ scripts/
 ENV IA_PYTHON=python
