@@ -114,9 +114,11 @@ outputs:
       Mohammad & Percival correction from realization(k, correction='mohammad21'))
       instead of the vendored djk/ assembly of per-patch pair-count blocks. Same patch
       centres, weights and grids; the estimators and the (s, mu) -> multipole projection
-      are written out in src/compute_correlations_cucount.py. Validated against
-      correlations_fine on LRG z1: xi_0 to 1e-13, xi~22 to 6e-6 (the D x S
-      normalisation: djk drops the shape subsample's self-pairs, cucount does not).
+      are written out in src/compute_correlations_cucount.py. Validated against the
+      released LRG z1 npz (scripts/validate_cucount_measurement.slurm, 2026-09-18):
+      xi_0 mean / sigma / correlation matrix to 5e-16 / 2e-14 / 3e-13, xi~22 to 6e-6
+      (the D x S normalisation: djk drops the shape subsample's self-pairs, cucount
+      does not), joint covariance to 7e-8 in Frobenius norm.
       Multipoles only; wp / wg+ stay with compute_correlations.py.
     recipe:
       command: >-
