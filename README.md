@@ -6,12 +6,13 @@ sub-analysis), the code (`src/`), the released data products (`data/`) and the r
 that turn them into the paper's figures and tables.
 
 ```
-astra.yaml                      root: inputs, 3 decisions, the paper's figures and tables
+astra.yaml                      root: inputs, 3 decisions, re-exports of the sub-analysis outputs
 analyses/samples                DESI catalogues -> colour / stellar-mass samples, shapes, randoms   [UNIONS]
 analyses/ia_measurements        xi_0 / xi~22 and wp / wg+ with the jackknife covariance            [UNIONS, GPU]
 analyses/ggl                    magnification, clustering-z n(z), Delta Sigma, n_gal, CSMF inputs  [UNIONS]
 analyses/csmf                   CSMF halo-model fit -> SHMR -> M* - M_eff relation                  [HOD env]
 analyses/ia_fits                NLA / TATT fits of the IA statistics (ia2pt)
+analyses/paper                  the figures and tables (root outputs re-export them)
 config/data_sources.yaml        every sample definition and analysis setting the scripts read
 data/                           released snapshots (3.4 MB) + links to the large products (data/README.md)
 src/                            the analysis scripts, one flat directory (inventory in CLAUDE.md)

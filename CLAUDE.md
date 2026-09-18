@@ -3,7 +3,10 @@
 ASTRA project (lightcone-cli 0.4.2 / astra-spec 0.0.14) for the paper
 *UNIONS x DESI: intrinsic alignments of DESI BGS, LRG and ELG galaxies* (Paviot et al.).
 It was scoped with `/lc-from-code` from the analysis repository `~/unions_IA` on
-2026-09-18; `astra.yaml` + `analyses/*/astra.yaml` are the spec, `src/` the code,
+2026-09-18; `astra.yaml` + `analyses/*/astra.yaml` are the spec (the paper's figures live in
+`analyses/paper`, whose inputs alias the ia_fits / csmf outputs; root outputs re-export
+them -- lc's executor does not resolve a root output re-export used as an input, astra
+does), `src/` the code,
 `data/` the inputs and released products, `config/data_sources.yaml` the sample
 definitions.
 

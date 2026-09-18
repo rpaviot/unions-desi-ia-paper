@@ -1,0 +1,4 @@
+# Baseline universe of the paper sub-analysis (its only decision is inherited from the root).
+id: baseline
+description: "The paper"
+decisions: {}

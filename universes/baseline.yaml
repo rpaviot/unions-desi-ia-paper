@@ -11,3 +11,4 @@ analyses:
   ggl: { universe: baseline }
   csmf: { universe: baseline }
   ia_fits: { universe: baseline }
+  paper: { universe: baseline }

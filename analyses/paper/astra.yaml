@@ -1,0 +1,137 @@
+# Sub-analysis: the paper's figures and tables, from the outputs of the two re-runnable
+# stages (ia_fits, csmf). A sub-analysis rather than root outputs so that its inputs can
+# alias the sibling outputs (`from: ../ia_fits.<id>`), which is what the lc executor
+# resolves; root outputs re-export everything here.
+
+version: "0.0.14"
+id: paper
+name: "Paper figures and tables"
+description: |
+  Figs. 2-7, A1, A and the appendix tables B.1-B.3 of Paviot et al., generated from
+  the nautilus IA fits (ia_fits) and the CSMF M* - M_eff relation (csmf) with the
+  plot_*.py / make_paper_tables.py scripts of src/.
+
+inputs:
+  - id: nla_multipoles
+    from: ../ia_fits.nla_multipoles
+  - id: nla_projected
+    from: ../ia_fits.nla_projected
+  - id: tatt_blue
+    from: ../ia_fits.tatt_blue
+  - id: meff_relation
+    from: ../csmf.meff_relation
+  - id: sample_config
+    from: ../sample_config
+
+decisions:
+  aia_mass_fit_space:
+    from: ../aia_mass_fit_space
+
+outputs:
+  - id: fig3_aia_vs_mass
+    label: "Fig. 3: A_IA vs M* and M_eff (BGS red + LRG)"
+    type: figure
+    inputs: [nla_multipoles, meff_relation]
+    decisions: [aia_mass_fit_space]
+    description: |
+      A_IA of the BGS red and LRG stellar-mass bins against log M* (left) and against
+      log M_eff through the CSMF SHMR (right), with the continuous broken power law
+      (free pivot, 4-parameter MINUIT fit) and its 1-sigma band from the parameter
+      covariance. The fitted slopes, pivot and chi2 are printed by --report-powerlaw.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/plot_fig3_aia_mass_meff.py
+        --fits-dir {inputs.nla_multipoles}
+        --relation-npz {inputs.meff_relation}/aia_vs_meff_relation.npz
+        --fit-space {decisions.aia_mass_fit_space}
+        --report-powerlaw
+        --out {output}/fig3_aia_vs_mass_red.png
+  - id: fig4_bgsblue_corrfunc
+    label: "Fig. 4: BGS blue xi~22 / wg+ with NLA and TATT"
+    type: figure
+    inputs: [nla_multipoles, nla_projected, tatt_blue]
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/plot_ia_corrfunc.py --mode bgsblue
+        --multipole-dir {inputs.nla_multipoles}
+        --projected-dir {inputs.nla_projected}
+        --tatt-dir {inputs.tatt_blue}
+        --out {output}/fig4_bgsblue_corrfunc.png
+  - id: fig5_elg_corrfunc
+    label: "Fig. 5: ELG xi~22 / wg+ with NLA and TATT"
+    type: figure
+    inputs: [nla_multipoles, nla_projected, tatt_blue]
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/plot_ia_corrfunc.py --mode elg
+        --multipole-dir {inputs.nla_multipoles}
+        --projected-dir {inputs.nla_projected}
+        --tatt-dir {inputs.tatt_blue}
+        --out {output}/fig5_elg_corrfunc.png
+  - id: fig6_aia_vs_mass_blue
+    label: "Fig. 6: A_IA vs M* for blue galaxies, multipoles vs projected"
+    type: figure
+    inputs: [nla_multipoles, nla_projected]
+    description: The projected w_g+ amplitudes are sign-flipped to the multipole convention.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/plot_aia_mass_blue_compare.py
+        --multipole-dir {inputs.nla_multipoles}
+        --projected-dir {inputs.nla_projected}
+        --out {output}/fig6_aia_vs_mass_blue.png
+  - id: fig7_tatt_contours
+    label: "Fig. 7: TATT A_1 - A_2 posteriors of the blue samples"
+    type: figure
+    inputs: [tatt_blue]
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/plot_tatt_a1a2_gtc.py --dir {inputs.tatt_blue}
+        --out {output}/fig7_tatt_a1a2_contours.png
+  - id: fig_a1_bgs_multipoles
+    label: "Fig. A1: xi0 and xi~22 of the 12 BGS red bins with the NLA best fit"
+    type: figure
+    inputs: [nla_multipoles]
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/plot_appendix_multipoles.py
+        --fits-dir {inputs.nla_multipoles}
+        --pattern 'BGS_RED_GMM_*massbin*_multipoles_NLA_nautilus.npz'
+        --out-prefix {output}/figA1_bgs_snr
+  - id: fig_a_wgp_vs_multipoles
+    label: "Fig. A: LRG z1 (b1, A_IA) posteriors, projected vs multipoles"
+    type: figure
+    inputs: [nla_multipoles, nla_projected]
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/plot_wgp_vs_multipoles_gtc.py
+        --mult {inputs.nla_multipoles}/LRG_zmin_0.40_zmax_0.75_multipoles_NLA_nautilus.npz
+        --proj {inputs.nla_projected}/LRG_zmin_0.40_zmax_0.75_projected_NLA_nautilus.npz
+        --out {output}/figA_wgp_vs_multipoles_gtc.png
+  - id: tables_fits
+    label: "Appendix tables B.1-B.3 (LaTeX)"
+    type: table
+    inputs: [nla_multipoles, nla_projected, tatt_blue]
+    description: |
+      table_fits_red.tex (BGS red + LRG NLA multipole fits), table_fits_blue.tex
+      (blue + ELG, multipoles and projected) and table_fits_tatt.tex, generated
+      from the fit npz files: b1, A_IA (w_g+ quoted as -a1), chi2 / dof, z_IA.
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/make_paper_tables.py
+        --multipole-dir {inputs.nla_multipoles}
+        --projected-dir {inputs.nla_projected}
+        --tatt-dir {inputs.tatt_blue}
+        --out-red {output}/table_fits_red.tex
+        --out-blue {output}/table_fits_blue.tex
+        --out-tatt {output}/table_fits_tatt.tex
+  - id: fig2_colour_redshift
+    label: "Fig. 2: g-r vs z of BGS red / blue and LRG"
+    type: figure
+    inputs: [sample_config]
+    description: |
+      Reads the DESI-only clustering catalogues built by analyses/samples.catalogues
+      (data/catalogues, regenerable from the DESI download without UNIONS).
+    recipe:
+      command: >-
+        ${{IA_PYTHON:-python}} src/plot_colour_redshift.py --config {inputs.sample_config}
+        --out {output}/fig2_colour_redshift.png
