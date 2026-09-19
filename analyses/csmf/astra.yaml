@@ -121,6 +121,11 @@ outputs:
       median (nautilus_best_fit / _errors / _covariance / _chi2 / _ndof), n_live 2000,
       n_eff 10000, jax-vectorised likelihood (~26 h on 20 cores: ~2 logL/s, 56+
       bounds, ~185k likelihood calls; the run's .h5 checkpoint lives next to the npz).
+      The cost is the f_h / f_s concentration rescaling (Dvornik+23 eq. 15): the NFW
+      Fourier transforms depend on two free parameters, so three sici-based u(k|M)
+      evaluations on the (1024 k x 200 M) grid per lens bin are redone at every
+      likelihood call (~1e9 sici per 100-point batch, 80 GB of vmap intermediates);
+      measured identical for the 200c/Tinker08 defaults, so it is not the mass definition.
       An interrupted nautilus run is resumed by exporting CSMF_NAUTILUS_RESUME=<path to
       a copy of its checkpoint> at `lc run` time (Snakemake wipes the output directory
       before re-running, so keep the copy outside it). Recorded mass definition and

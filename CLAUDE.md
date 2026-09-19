@@ -46,12 +46,22 @@ Operating `lc run` under SLURM (learned 2026-09-18/19):
 - Snakemake wipes an output dir before re-running its rule, so an interrupted rule leaves
   an empty dir ("missing") -- and destroys any checkpoint inside it. The nautilus CSMF fit
   (`csmf_nautilus` universe, ~26 h on 20 cores at ~2 logL/s; the 24 h wall is too short)
-  checkpoints to `<output>/csmf_fit.npz.h5`; copy that file OUT of the output dir before
+  checkpoints to `<output>/csmf_fit.npz.h5`; the slowness is the f_h/f_s NFW rescaling
+  re-evaluating sici-based u(k|M) per call, not a misconfiguration -- measured 2.1 logL/s
+  for both the paper and the July-default halo model). Copy that file OUT of the output dir before
   the job dies and resume with `sbatch --export=ALL,...,CSMF_NAUTILUS_RESUME=<copy>
   --time=48:00:00 scripts/lc_run.slurm` (fit_csmf `--resume-from`, recipe passthrough).
   Same seed / n_live / `--vectorized` are required for the resume.
 - One `lc run` per project at a time (exclusive run lock): chain jobs with
   `--dependency=afterany:<jobid>`.
+- **A commit invalidates every materialised output for Snakemake** (not for `lc status`):
+  the rule `params` dict carries `git_sha` (and `lc_version`), and lc runs Snakemake with
+  `--rerun-triggers code,input,mtime,params`, so after any new commit the next `lc run`
+  reports "Params have changed", DELETES the output dirs it targets and re-runs them
+  (verified in `.snakemake/metadata`: the stored params record the sha). `lc status` /
+  `lc verify` use code_version (recipe + image hash + decisions, no sha) and stay `ok`.
+  After commit-only changes run `lc run ... --rerun-triggers code,input,mtime`, and check
+  `lc status` first: what it calls `ok` is not re-run by that form.
 
 ## Runnable boundary
 
