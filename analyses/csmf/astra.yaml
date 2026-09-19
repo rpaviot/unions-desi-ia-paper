@@ -119,7 +119,11 @@ outputs:
       --passes 2; pass 1 saved as csmf_fit_pass1.npz); nautilus -> the posterior
       (points, log_w, log_l, log_z) plus the same point-estimate keys at the posterior
       median (nautilus_best_fit / _errors / _covariance / _chi2 / _ndof), n_live 2000,
-      n_eff 10000, jax-vectorised likelihood (~2-4 h). Recorded mass definition and
+      n_eff 10000, jax-vectorised likelihood (~26 h on 20 cores: ~2 logL/s, 56+
+      bounds, ~185k likelihood calls; the run's .h5 checkpoint lives next to the npz).
+      An interrupted nautilus run is resumed by exporting CSMF_NAUTILUS_RESUME=<path to
+      a copy of its checkpoint> at `lc run` time (Snakemake wipes the output directory
+      before re-running, so keep the copy outside it). Recorded mass definition and
       halo-model kwargs. Paper fiducial: chi2 = 134.7
       (Delta Sigma 107.6 over 100 points + n_gal 26.1 over 10 bins + prior 1.0) for
       ndof = 90 as the fitter counts it (Delta Sigma points - 10 free parameters),
@@ -136,8 +140,9 @@ outputs:
         --gamma1-prior {decisions.gamma1_prior} --ngal-anchor {decisions.ngal_anchor}
         --start-from {inputs.csmf_seed_fit}
         --n-live 2000 --n-eff 10000 --vectorized
+        ${{CSMF_NAUTILUS_RESUME:+--resume-from ${{CSMF_NAUTILUS_RESUME}}}}
         --label final --out {output}/csmf_fit.npz
-      resources: { cpus: 20, memory: "110GB", time_limit: "24h" }
+      resources: { cpus: 20, memory: "110GB", time_limit: "48h" }
   - id: meff_relation
     label: "M* - M_eff relation of the lens bins"
     type: data

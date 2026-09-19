@@ -36,6 +36,23 @@ and outside the image-identity hash: the Containerfile COPYs only src/ config/ s
 because lc folds the hash of the COPY sources into every output's code_version -- a
 log or README edit under a `COPY . .` would mark every output stale).
 
+Operating `lc run` under SLURM (learned 2026-09-18/19):
+
+- Cancelled or wall-killed runs leave Snakemake "incomplete" markers, and the next `lc run`
+  fails at once with `IncompleteFilesException` (lc does not pass `--rerun-incomplete`).
+  The markers are `.snakemake/incomplete/<base64 of the output path>` (`.snakemake` is a
+  symlink into the scratch root); remove the markers of the affected outputs and their
+  emptied output dirs, then resubmit.
+- Snakemake wipes an output dir before re-running its rule, so an interrupted rule leaves
+  an empty dir ("missing") -- and destroys any checkpoint inside it. The nautilus CSMF fit
+  (`csmf_nautilus` universe, ~26 h on 20 cores at ~2 logL/s; the 24 h wall is too short)
+  checkpoints to `<output>/csmf_fit.npz.h5`; copy that file OUT of the output dir before
+  the job dies and resume with `sbatch --export=ALL,...,CSMF_NAUTILUS_RESUME=<copy>
+  --time=48:00:00 scripts/lc_run.slurm` (fit_csmf `--resume-from`, recipe passthrough).
+  Same seed / n_live / `--vectorized` are required for the resume.
+- One `lc run` per project at a time (exclusive run lock): chain jobs with
+  `--dependency=afterany:<jobid>`.
+
 ## Runnable boundary
 
 The UNIONS shape catalogue is proprietary, so `analyses/samples`, `analyses/ia_measurements`

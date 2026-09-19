@@ -22,6 +22,7 @@ Run from the NRV venv:
 from __future__ import annotations
 
 import argparse
+import shutil
 import sys
 from pathlib import Path
 
@@ -252,6 +253,13 @@ def main():
     p.add_argument("--vectorized", action="store_true",
                    help="nautilus only: use the jax.vmap-batched ΔΣ likelihood "
                         "(vectorized=True). Equivalent posterior, much faster.")
+    p.add_argument("--resume-from", default=None, metavar="CKPT.h5",
+                   help="nautilus only: resume an interrupted run from a copy of its "
+                        "checkpoint. The file is copied to <out>.h5 (unless that already "
+                        "exists) before the sampler starts, and nautilus resumes from it "
+                        "(same seed / n_live / --vectorized required). Needed under "
+                        "Snakemake, which wipes the output directory -- and with it the "
+                        "checkpoint -- before re-running an interrupted rule.")
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--start-from", default=None,
                    help="minuit only: seed the minimiser from the best-fit params of an "
@@ -319,8 +327,14 @@ def main():
                 print(f"[pass {i}/{args.passes}] saved {out_i}; re-seeding pass {i + 1} "
                       f"from its best fit", flush=True)
     elif args.method == "nautilus":
+        ckpt = args.out + ".h5"
+        if args.resume_from and not Path(ckpt).exists():
+            Path(ckpt).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(args.resume_from, ckpt)
+            print(f"[resume] nautilus checkpoint copied from {args.resume_from} -> {ckpt}",
+                  flush=True)
         fitter.run(n_live=args.n_live, n_eff=args.n_eff, seed=args.seed,
-                   filepath=args.out + ".h5", vectorized=args.vectorized)
+                   filepath=ckpt, vectorized=args.vectorized)
 
     fitter.save_results(args.out)
     # Record the halo-model ingredients actually used, so downstream scripts
