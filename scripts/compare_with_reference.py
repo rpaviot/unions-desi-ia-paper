@@ -15,8 +15,8 @@ Two checks, both printed as tables:
 
 Cluster-only (the reference trees live under ~/unions_IA and /n09data); run from the project root:
 
-    python scripts/compare_with_reference.py csmf
-    python scripts/compare_with_reference.py csmf --universe csmf_nautilus --nautilus
+    python scripts/compare_with_reference.py csmf --universe csmf_minuit        # bit-identical
+    python scripts/compare_with_reference.py csmf --nautilus [--point map]      # baseline
     python scripts/compare_with_reference.py ia            # all three ia_fits outputs
 """
 from __future__ import annotations
@@ -35,7 +35,7 @@ REF_IA = {
 }
 
 
-def compare_csmf(universe: str, nautilus: bool) -> int:
+def compare_csmf(universe: str, nautilus: bool, point: str = "median") -> int:
     new = Path(f"analyses/csmf/results/{universe}/csmf_fit/csmf_fit.npz")
     if not new.exists():
         print(f"[csmf] {new} missing"); return 1
@@ -43,18 +43,23 @@ def compare_csmf(universe: str, nautilus: bool) -> int:
     names = [str(n) for n in b["minuit_param_names"]]
     ref_bf, ref_err = b["minuit_best_fit"], b["minuit_errors"]
     key = "nautilus" if nautilus else "minuit"
-    bf, err = a[f"{key}_best_fit"], a[f"{key}_errors"]
-    print(f"[csmf] {new}  ({key})  vs  {REF_CSMF.name}")
+    if nautilus and point != "median":      # nautilus_map / nautilus_mean (+ _chi2)
+        bf, err = a[f"nautilus_{point}"], a["nautilus_errors"]
+        chi2_key = f"nautilus_{point}_chi2"
+    else:
+        bf, err = a[f"{key}_best_fit"], a[f"{key}_errors"]
+        chi2_key = f"{key}_chi2"
+    print(f"[csmf] {new}  ({key}{': ' + point if nautilus else ''})  vs  {REF_CSMF.name}")
     print(f"  {'param':8s} {'lc':>12s} {'paper':>12s} {'diff':>11s} {'diff/sig':>9s} {'err lc':>9s} {'err paper':>9s}")
     worst = 0.0
     for n, x, y, ex, ey in zip(names, bf, ref_bf, err, ref_err):
         d = x - y
         worst = max(worst, abs(d) / ey if ey > 0 else 0)
         print(f"  {n:8s} {x:12.6f} {y:12.6f} {d:11.2e} {d/ey if ey>0 else 0:9.3f} {ex:9.4f} {ey:9.4f}")
-    c_new = float(a[f"{key}_chi2"]); c_ref = float(b["minuit_chi2"])
+    c_new = float(a[chi2_key]); c_ref = float(b["minuit_chi2"])
     print(f"  chi2  {c_new:.6f} vs {c_ref:.6f}  (diff {c_new-c_ref:+.2e});  ndof {int(a[f'{key}_ndof'])} vs {int(b['minuit_ndof'])}")
     if nautilus:
-        print(f"  nautilus-median vs MINUIT: worst |diff|/sigma_minuit = {worst:.2f}")
+        print(f"  nautilus-{point} vs MINUIT: worst |diff|/sigma_minuit = {worst:.2f}")
         return 0
     same = np.array_equal(bf, ref_bf) and np.array_equal(err, ref_err) and c_new == c_ref
     print(f"  BIT-IDENTICAL: {same}" + ("" if same else f"   (max |diff|/sigma {worst:.2e}; "
@@ -100,11 +105,13 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("what", choices=["csmf", "ia"])
     p.add_argument("--universe", default="baseline")
-    p.add_argument("--nautilus", action="store_true", help="csmf: compare the nautilus posterior median")
+    p.add_argument("--nautilus", action="store_true", help="csmf: compare a nautilus point estimate")
+    p.add_argument("--point", default="median", choices=["median", "map", "mean"],
+                   help="csmf --nautilus: which point estimate (median = nautilus_best_fit)")
     p.add_argument("--outputs", nargs="*", default=list(REF_IA), help="ia: which ia_fits outputs")
     args = p.parse_args()
     if args.what == "csmf":
-        raise SystemExit(compare_csmf(args.universe, args.nautilus))
+        raise SystemExit(compare_csmf(args.universe, args.nautilus, args.point))
     rc = 0
     for o in args.outputs:
         rc = max(rc, compare_ia(o, args.universe))

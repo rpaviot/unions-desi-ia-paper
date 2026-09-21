@@ -446,6 +446,11 @@ def main():
     rel = np.load(args.relation_npz, allow_pickle=True)
     rel_x = np.asarray(rel["rel_logmstar"], float)
     rel_y = np.asarray(rel["rel_logmeff"], float)
+    # 16-84 % band of the relation over the CSMF posterior (csmf_meff_relation.py
+    # --n-samples): drawn as x error bars on the right panel, NOT propagated into the
+    # broken power-law fit (which weights the points by their A_IA errors only).
+    rel_band = ((np.asarray(rel["rel_logmeff_lo"], float), np.asarray(rel["rel_logmeff_hi"], float))
+                if "rel_logmeff_lo" in rel else None)
 
     if args.panel == "both":
         fig, (axL, axR) = plt.subplots(1, 2, figsize=(7, 3.5))
@@ -477,19 +482,28 @@ def main():
     # ---- right: A_IA vs M_eff + broken power law ----
     allpts = np.vstack([bgs, lrg])
     logMeff = lin_extrap(allpts[:, 0], rel_x, rel_y)
+    if rel_band is not None:
+        xlo = lin_extrap(allpts[:, 0], rel_x, rel_band[0])
+        xhi = lin_extrap(allpts[:, 0], rel_x, rel_band[1])
+        xerr = np.vstack([np.clip(logMeff - xlo, 0, None), np.clip(xhi - logMeff, 0, None)])
+        print(f"[M_eff band] median half-width {0.5 * (xhi - xlo).mean():.3f} dex over "
+              f"{len(logMeff)} bins (posterior 16-84 %)")
+    else:
+        xerr = np.zeros((2, len(logMeff)))
     nb = len(bgs)
-    axR.errorbar(logMeff[:nb], bgs[:, 1], yerr=bgs[:, 2], fmt="o",
+    axR.errorbar(logMeff[:nb], bgs[:, 1], yerr=bgs[:, 2], xerr=xerr[:, :nb], fmt="o",
                  color="darkorange", ms=4, capsize=2)
     if args.lrg_by_z:
         lo_rows = {tuple(r) for r in lrg_lo}
         is_lo = np.array([tuple(r) in lo_rows for r in lrg])
         mlrg = logMeff[nb:]
-        axR.errorbar(mlrg[is_lo], lrg[is_lo, 1], yerr=lrg[is_lo, 2], fmt="s",
+        xlrg = xerr[:, nb:]
+        axR.errorbar(mlrg[is_lo], lrg[is_lo, 1], yerr=lrg[is_lo, 2], xerr=xlrg[:, is_lo], fmt="s",
                      color="crimson", ms=4, capsize=2, mfc="white")
-        axR.errorbar(mlrg[~is_lo], lrg[~is_lo, 1], yerr=lrg[~is_lo, 2], fmt="o",
+        axR.errorbar(mlrg[~is_lo], lrg[~is_lo, 1], yerr=lrg[~is_lo, 2], xerr=xlrg[:, ~is_lo], fmt="o",
                      color="crimson", ms=4, capsize=2)
     else:
-        axR.errorbar(logMeff[nb:], lrg[:, 1], yerr=lrg[:, 2], fmt="o",
+        axR.errorbar(logMeff[nb:], lrg[:, 1], yerr=lrg[:, 2], xerr=xerr[:, nb:], fmt="o",
                      color="crimson", ms=4, capsize=2)
 
     pos = allpts[:, 1] > 0

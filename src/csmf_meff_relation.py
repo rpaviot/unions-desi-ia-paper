@@ -7,7 +7,9 @@ and evaluates per bin the central-weighted effective halo mass
 M_eff = <M_h>_cen (h^-1 Msun). Writes an npz with
 
     rel_logmstar   median log10 M* [h^-2 Msun] of each lens bin (sorted)
-    rel_logmeff    log10 M_eff [h^-1 Msun] of the best-fit model in that bin
+    rel_logmeff    log10 M_eff [h^-1 Msun] of the model at the chosen point estimate
+    rel_logmeff_lo / _hi   (nautilus, --n-samples > 0) 16 / 84 % of log M_eff over
+                   importance-weighted posterior draws -- the x error bars of Fig. 3
 
 which plot_fig3_aia_mass_meff.py --relation-npz interpolates (log-log, linearly
 extrapolated) to map the stellar-mass bins of the IA fits to M_eff.
@@ -27,6 +29,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ggl_utils as gu  # noqa: E402
+from csmf_point import POINTS  # noqa: E402
 from plot_aia_meff import label_relation  # noqa: E402
 
 
@@ -42,20 +45,30 @@ def main():
     p.add_argument("--samples", nargs="+", default=["BGS_RED_GMM_VLIM_SNR"],
                    help="lens samples of the fit")
     p.add_argument("--method", default=None, choices=["minuit", "nautilus", "de"],
-                   help="point estimate to evaluate M_eff at (default: whichever the npz "
-                        "carries; nautilus = the posterior median)")
+                   help="optimiser whose keys to read (default: whichever the npz carries)")
+    p.add_argument("--point", default="median", choices=list(POINTS),
+                   help="nautilus only: evaluate M_eff at the posterior median (default), "
+                        "the map (highest-posterior sample) or the mean")
+    p.add_argument("--n-samples", type=int, default=0,
+                   help="nautilus only: also propagate this many posterior draws to a "
+                        "16-84 %% band on log M_eff per bin (0 = off)")
+    p.add_argument("--seed", type=int, default=42, help="rng seed of the posterior draws")
     p.add_argument("--out", required=True, help="output npz")
     args = p.parse_args()
 
     cfg = gu.load_config(args.config)
-    rel_x, rel_y = label_relation(cfg, None, args.samples, in_name=args.in_name,
-                                  fit_npz=args.fit_npz, in_dir=args.in_dir, method=args.method)
+    rel_x, rel_y, band = label_relation(cfg, None, args.samples, in_name=args.in_name,
+                                        fit_npz=args.fit_npz, in_dir=args.in_dir,
+                                        method=args.method, point=args.point,
+                                        n_samples=args.n_samples, seed=args.seed)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
+    extra = {"rel_logmeff_lo": band[0], "rel_logmeff_hi": band[1],
+             "n_samples": args.n_samples, "seed": args.seed} if band else {}
     np.savez(out, rel_logmstar=rel_x, rel_logmeff=rel_y,
              fit_npz=str(args.fit_npz), in_dir=str(args.in_dir or args.in_name or ""),
-             method=str(args.method or "auto"),
-             samples=np.array(args.samples))
+             method=str(args.method or "auto"), point=str(args.point),
+             samples=np.array(args.samples), **extra)
     print(f"wrote {out}  ({len(rel_x)} nodes)")
 
 

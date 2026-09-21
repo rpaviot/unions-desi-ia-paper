@@ -33,6 +33,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from csmf_point import fit_method, load_point, posterior_draws  # noqa: E402
 import ggl_utils as gu                       # noqa: E402
 from fit_csmf import build_fitter            # noqa: E402
 
@@ -86,23 +87,14 @@ def p99_relation(cfg):
     return logmed, logMeff
 
 
-def fit_method(fit, method=None):
-    """Which point estimate a fit npz carries: 'minuit' / 'nautilus' / 'de' (fit_csmf.py
-    keys <method>_param_names / <method>_best_fit); auto-detected in that order."""
-    if method:
-        if f"{method}_best_fit" not in fit:
-            raise KeyError(f"fit has no {method}_best_fit")
-        return method
-    for m in ("minuit", "nautilus", "de"):
-        if f"{m}_best_fit" in fit:
-            return m
-    raise KeyError("fit npz has no minuit_/nautilus_/de_ best fit")
-
-
-def label_relation(cfg, label, samples, in_name=None, fit_npz=None, in_dir=None, method=None):
-    """(logM*_med, logMeff) from any saved CSMF fit (fit_csmf label, or an explicit
-    ``fit_npz`` path with the csmf-input directory ``in_dir`` it was run on), at the
-    point estimate ``method`` (minuit / nautilus = posterior median / de; auto-detected).
+def label_relation(cfg, label, samples, in_name=None, fit_npz=None, in_dir=None, method=None,
+                   point="median", n_samples=0, seed=42):
+    """(logM*_med, logMeff, band) from any saved CSMF fit (fit_csmf label, or an explicit
+    ``fit_npz`` path with the csmf-input directory ``in_dir`` it was run on), evaluated
+    at the ``point`` estimate of optimiser ``method`` (auto-detected; ``point`` = median /
+    map / mean applies to nautilus only). With ``n_samples`` > 0 and a nautilus fit,
+    ``band`` = (lo16, hi84) of log M_eff per bin over that many importance-weighted
+    posterior draws, else None.
 
     Same machinery as p99_relation but with the fit's own mass bins as built
     (no p99 re-capping -- the S/N samples are already capped at logM*=11.40 by
@@ -127,20 +119,31 @@ def label_relation(cfg, label, samples, in_name=None, fit_npz=None, in_dir=None,
     fitter = build_fitter(cfg, args)
     fitter._initialize_halo_model()
 
-    m = fit_method(fit, method)
-    bf = {str(n): float(v) for n, v in zip(fit[f"{m}_param_names"], fit[f"{m}_best_fit"])}
-    print(f"[{label}] point estimate: {m}" + (" (posterior median)" if m == "nautilus" else ""))
-    fitter._halo_model.set_hod_params({k: bf[k] for k in CSMF_KEYS})
-    fitter._halo_model.update_f(f_h=bf.get("f_h", bf.get("f_c", 1.0)), f_s=bf.get("f_s", 1.0))
+    def meff_at(names, vec):
+        bf = {str(n): float(v) for n, v in zip(names, vec)}
+        fitter._halo_model.set_hod_params({k: bf[k] for k in CSMF_KEYS})
+        fitter._halo_model.update_f(f_h=bf.get("f_h", bf.get("f_c", 1.0)), f_s=bf.get("f_s", 1.0))
+        return np.log10(np.atleast_1d(np.asarray(fitter._halo_model.effective_halo_mass(), float)))
 
-    m_eff = np.atleast_1d(np.asarray(fitter._halo_model.effective_halo_mass(), float))
+    m = fit_method(fit, method)
+    names, best, _, _, point_label = load_point(fit, m, point)
+    print(f"[{label}] point estimate: {m}, {point_label}")
     logmed = np.array([mb.logmstar_median for mb in fitter.mass_bins])
     order = np.argsort(logmed)
-    logmed, logMeff = logmed[order], np.log10(m_eff[order])
-    print(f"\n[{label} relation]  <logM*>   logM_eff[h^-1 Msun]")
-    for x, y in zip(logmed, logMeff):
-        print(f"            {x:10.3f} {y:10.3f}")
-    return logmed, logMeff
+    logmed, logMeff = logmed[order], meff_at(names, best)[order]
+
+    band = None
+    if n_samples > 0 and m == "nautilus":
+        dnames, draws = posterior_draws(fit, n_samples, np.random.default_rng(seed))
+        samp = np.array([meff_at(dnames, d)[order] for d in draws])
+        band = (np.percentile(samp, 16, axis=0), np.percentile(samp, 84, axis=0))
+        print(f"[{label}] M_eff 16-84 % band from {n_samples} posterior draws")
+
+    print(f"\n[{label} relation]  <logM*>   logM_eff[h^-1 Msun]" + ("   (lo16, hi84)" if band else ""))
+    for i, (x, y) in enumerate(zip(logmed, logMeff)):
+        extra = f"   ({band[0][i]:.3f}, {band[1][i]:.3f})" if band else ""
+        print(f"            {x:10.3f} {y:10.3f}{extra}")
+    return logmed, logMeff, band
 
 
 def map_meff(logmstar, rel_x, rel_y):
@@ -228,8 +231,8 @@ def main():
 
     cfg = gu.load_config(str(gu.CONFIG))
     if args.relation_label:
-        rel_x, rel_y = label_relation(cfg, args.relation_label,
-                                      args.relation_samples, args.relation_in_name)
+        rel_x, rel_y, _ = label_relation(cfg, args.relation_label,
+                                         args.relation_samples, args.relation_in_name)
         rel_tag = args.relation_label
     else:
         rel_x, rel_y = p99_relation(cfg)

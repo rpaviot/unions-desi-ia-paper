@@ -27,6 +27,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ggl_utils as gu  # noqa: E402
 from fit_csmf import build_fitter  # noqa: E402
+from csmf_point import POINTS, load_point  # noqa: E402
 
 
 def main():
@@ -37,8 +38,10 @@ def main():
                    help="fit label (locates <dest>/ggl/csmf_fit/csmf_fit_<label>_<method>.npz "
                         "unless --fit-npz is given)")
     p.add_argument("--method", default="minuit", choices=["minuit", "de", "nautilus"],
-                   help="which point estimate of the fit npz to decompose (nautilus: the "
-                        "posterior median, fit_csmf's nautilus_* keys)")
+                   help="which optimiser's keys of the fit npz to decompose")
+    p.add_argument("--point", default="median", choices=list(POINTS),
+                   help="nautilus only: posterior median (default), map (highest-posterior "
+                        "sample of the chain) or mean; ignored for minuit / de")
     p.add_argument("--samples", nargs="+", default=["BGS_RED_GMM_VLIM_SNR"])
     p.add_argument("--rp-min", type=float, default=None,
                    help="[Mpc/h] scale cut the fit was run with (default: config)")
@@ -68,10 +71,7 @@ def main():
         sys.exit(f"fit file not found: {fit_npz}")
 
     d = np.load(fit_npz, allow_pickle=True)
-    names = [str(s) for s in d[f"{args.method}_param_names"]]
-    best = np.asarray(d[f"{args.method}_best_fit"], float)
-    tot_saved = float(d[f"{args.method}_chi2"])
-    ndof = int(d[f"{args.method}_ndof"])
+    names, best, tot_saved, ndof, point_label = load_point(d, args.method, args.point)
     free = dict(zip(names, best))
 
     bf_args = SimpleNamespace(
@@ -93,7 +93,7 @@ def main():
     ng_model = np.asarray(fitter._halo_model.ngal()).ravel()
 
     print(f"\n{'='*72}")
-    print(f"chi2 decomposition — {args.label or fit_npz.name} ({args.method})")
+    print(f"chi2 decomposition — {args.label or fit_npz.name} ({args.method}: {point_label})")
     print(f"{'='*72}")
     hdr = f"{'sample/bin':22s} {'z_eff':>6s} {'npts':>4s} {'chi2_DS':>9s} {'DS/npts':>8s} {'chi2_ngal':>10s}"
     print(hdr)
@@ -140,7 +140,8 @@ def main():
     print("=" * len(hdr))
     print(f"  recomputed total chi2 = {ds_total:.2f} (DS) + {ng_total:.2f} (ngal) "
           f"+ {prior_pen:.2f} (prior) = {recomputed:.2f}")
-    print(f"  saved {args.method} chi2 =  {tot_saved:.2f}   (ndof={ndof}, "
+    print(f"  saved {args.method} chi2 ({args.point if args.method == 'nautilus' else 'minimum'}) = "
+          f"{tot_saved:.2f}   (ndof={ndof}, "
           f"chi2/ndof={tot_saved/ndof:.3f})")
     print(f"  match: {'OK' if abs(recomputed - tot_saved) < 0.5 else 'MISMATCH'} "
           f"(Δ={recomputed - tot_saved:+.3f})")

@@ -159,8 +159,13 @@ def nautilus_summary(fitter):
     best_fit = the weighted posterior MEDIAN of each parameter (what the IA fits quote);
     errors = half the 16-84 % interval; covariance = the weighted sample covariance;
     chi2 = -2 log L + 2 x prior penalty AT THE MEDIAN (the minuit convention, so
-    decompose_csmf_chi2 reproduces it); nautilus_map = the max-log L sample; ndof = Delta
-    Sigma points after the scale cut - free parameters (the fitter's minuit convention)."""
+    decompose_csmf_chi2 reproduces it); ndof = Delta Sigma points after the scale cut -
+    free parameters (the fitter's minuit convention). Two more point estimates with
+    their own chi2: nautilus_map / nautilus_map_chi2 = the posterior sample with the
+    highest log L - prior penalty (nautilus's log_l is the likelihood alone, the Gaussian
+    gamma1 prior sits in its Prior object, so the MAP is taken on the same objective
+    MINUIT minimises and nautilus_map_chi2 is its minimum over the chain) and
+    nautilus_mean / nautilus_mean_chi2 = the weighted posterior mean."""
     res = fitter.results
     names = [str(n) for n in res["param_names"]]
     pts = np.asarray(res["points"], float)
@@ -177,17 +182,35 @@ def nautilus_summary(fitter):
     lo = np.array([wq(pts[:, j], 0.16) for j in range(len(names))])
     hi = np.array([wq(pts[:, j], 0.84) for j in range(len(names))])
     cov = np.cov(pts, rowvar=False, aweights=w)
-    free = {n: float(v) for n, v in zip(names, med)}
-    chi2 = -2.0 * float(fitter.log_likelihood(free)) + 2.0 * float(fitter._compute_prior_penalty(free))
+    mean = np.average(pts, weights=w, axis=0)
+
+    def objective(vec):
+        free = {n: float(v) for n, v in zip(names, vec)}
+        return (-2.0 * float(fitter.log_likelihood(free))
+                + 2.0 * float(fitter._compute_prior_penalty(free)))
+
+    # MAP = the chain sample maximising log L - prior penalty (MINUIT's objective).
+    log_l = np.asarray(res["log_l"], float)
+    penalty = np.array([fitter._compute_prior_penalty({n: float(v) for n, v in zip(names, pt)})
+                        for pt in pts])
+    imap = int(np.argmax(log_l - penalty))
+    chi2 = objective(med)
+    chi2_mean = objective(mean)
+    chi2_map = -2.0 * log_l[imap] + 2.0 * penalty[imap]
     npts = sum(int(fitter._apply_scale_cuts(mb)[3].sum()) for mb in fitter.mass_bins)
-    print(f"\n[nautilus] posterior medians: {free}\n"
-          f"[nautilus] chi2 at the median = {chi2:.2f} for ndof = {npts - len(names)}  "
-          f"(log Z = {float(res['log_z']):.2f})", flush=True)
+    ndof = npts - len(names)
+    print(f"\n[nautilus] posterior medians: {dict(zip(names, med))}\n"
+          f"[nautilus] posterior means:   {dict(zip(names, mean))}\n"
+          f"[nautilus] MAP sample:        {dict(zip(names, pts[imap]))}\n"
+          f"[nautilus] chi2 at the median = {chi2:.2f}, mean = {chi2_mean:.2f}, "
+          f"MAP = {chi2_map:.2f} for ndof = {ndof}  (log Z = {float(res['log_z']):.2f})",
+          flush=True)
     return {"nautilus_param_names": np.array(names, dtype=str), "nautilus_best_fit": med,
             "nautilus_errors": 0.5 * (hi - lo), "nautilus_lo16": lo, "nautilus_hi84": hi,
-            "nautilus_covariance": cov, "nautilus_chi2": chi2,
-            "nautilus_ndof": npts - len(names),
-            "nautilus_map": pts[int(np.argmax(np.asarray(res["log_l"], float)))]}
+            "nautilus_covariance": cov, "nautilus_chi2": chi2, "nautilus_ndof": ndof,
+            "nautilus_mean": mean, "nautilus_mean_chi2": chi2_mean,
+            "nautilus_map": pts[imap], "nautilus_map_chi2": chi2_map,
+            "nautilus_map_log_l": float(log_l[imap])}
 
 
 def main():

@@ -35,6 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ggl_utils as gu  # noqa: E402
 import paper_style  # noqa: E402
 from fit_csmf import build_fitter  # noqa: E402
+from csmf_point import POINTS, load_point  # noqa: E402
 
 
 def main():
@@ -43,7 +44,10 @@ def main():
     p.add_argument("--config", default=str(gu.CONFIG))
     p.add_argument("--label", default="bgs_vlim", help="fit label (default: bgs_vlim)")
     p.add_argument("--method", default="minuit", choices=["minuit", "de", "nautilus"],
-                   help="which point estimate to draw (nautilus: the posterior median)")
+                   help="which optimiser's keys of the fit npz to draw")
+    p.add_argument("--point", default="median", choices=list(POINTS),
+                   help="nautilus only: posterior median (default), map (highest-posterior "
+                        "sample of the chain) or mean; ignored for minuit / de")
     p.add_argument("--samples", nargs="+", default=None,
                    help="Samples to rebuild (must match the fit; default: all in config)")
     p.add_argument("--rp-min", type=float, default=None, help="[Mpc/h]; default from config")
@@ -83,9 +87,8 @@ def main():
         sys.exit(f"fit file not found: {fit_npz}")
 
     d = np.load(fit_npz, allow_pickle=True)
-    names = [str(s) for s in d[f"{args.method}_param_names"]]
-    best = np.asarray(d[f"{args.method}_best_fit"], float)
-    chi2, ndof = float(d[f"{args.method}_chi2"]), int(d[f"{args.method}_ndof"])
+    names, best, chi2, ndof, point_label = load_point(d, args.method, args.point)
+    print(f"[plot_csmf_bestfit] model drawn at the {point_label}")
     free = dict(zip(names, best))
 
     # Rebuild the fitter exactly like fit_csmf.py (build_fitter takes a namespace).

@@ -1,9 +1,0 @@
-id: nautilus
-description: "The fiducial CSMF fit sampled with nautilus instead of MINUIT (full posterior; checks the Hesse errors)"
-decisions:
-  mass_definition: "200m"
-  mass_function: tinker10
-  csmf_rp_min: "5"
-  gamma1_prior: gaussian
-  ngal_anchor: ngal
-  csmf_optimizer: nautilus

@@ -97,14 +97,36 @@ decisions:
     label: "Optimizer / sampler"
     tags: [stats]
     rationale: |
-      MINUIT (Migrad + Hesse, seeded from a converged fit and run twice so the
-      second pass starts from the reported minimum) gives the quoted best fit and
-      parabolic errors in ~15 min; the nautilus nested sampler gives the full
-      posterior at ~50x the cost and is used to check the MINUIT errors.
-    default: minuit
+      The nautilus nested sampler gives the full posterior (n_live 2000, n_eff 10000,
+      ~26 h on 20 cores): the paper quotes its marginal medians with the 16-84 %
+      intervals and its MAP sample as the best fit. The posterior is skewed along the
+      M0-gamma2 / f_h-f_s degeneracies (medians ~1 sigma from the mode, f_h and f_s
+      constrained to 0.85 +0.11 -0.16 / 0.81 +0.13 -0.24 where MINUIT rails them at
+      the cap), so parabolic errors misrepresent it. MINUIT (Migrad + Hesse, seeded
+      from a converged fit, two passes) reaches the same minimum in ~15 min -- chi2
+      134.65 vs 135.4 at the chain's MAP sample, every parameter within 0.1 sigma -- and
+      is kept as the fast cross-check universe.
+    default: nautilus
     options:
-      minuit: { label: "MINUIT (two seeded passes)" }
       nautilus: { label: "nautilus nested sampling" }
+      minuit: { label: "MINUIT (two seeded passes)" }
+  csmf_point_estimate:
+    label: "Point estimate evaluated from the posterior"
+    tags: [stats]
+    rationale: |
+      Where a single model is needed (the chi2 decomposition, the Delta Sigma curves
+      of Fig. B.3, the M* - M_eff mapping of Fig. 3 and the "best fit" column of the
+      CSMF table) it is evaluated at the maximum a posteriori sample of the chain --
+      the sample maximising log L minus the Gaussian gamma1 prior penalty, i.e. the
+      objective MINUIT minimises, so its chi2 is directly comparable. The marginal
+      median sits ~1 sigma away along the degeneracies (chi2 140.8 there) and the
+      posterior mean further still (chi2 150), neither being a model that fits the
+      data. Ignored when the optimizer is MINUIT (its minimum is the only point).
+    default: map
+    options:
+      map: { label: "MAP sample of the chain" }
+      median: { label: "marginal posterior median" }
+      mean: { label: "posterior mean" }
 
 outputs:
   - id: csmf_fit
@@ -115,12 +137,15 @@ outputs:
     decisions: [ngal_zwindow, ngal_area, mass_definition, mass_function, csmf_rp_min,
                 gamma1_prior, ngal_anchor, csmf_optimizer]
     description: |
-      csmf_fit.npz: MINUIT -> best fit, Hesse covariance, chi2 (two seeded Migrad passes,
-      --passes 2; pass 1 saved as csmf_fit_pass1.npz); nautilus -> the posterior
-      (points, log_w, log_l, log_z) plus the same point-estimate keys at the posterior
-      median (nautilus_best_fit / _errors / _covariance / _chi2 / _ndof), n_live 2000,
-      n_eff 10000, jax-vectorised likelihood (~26 h on 20 cores: ~2 logL/s, 56+
-      bounds, ~185k likelihood calls; the run's .h5 checkpoint lives next to the npz).
+      csmf_fit.npz: nautilus (fiducial) -> the posterior (points, log_w, log_l, log_z)
+      plus point-estimate keys in the MINUIT layout: nautilus_best_fit / _lo16 / _hi84 /
+      _errors / _covariance / _chi2 / _ndof at the marginal MEDIAN, nautilus_map /
+      _map_chi2 (the highest-posterior sample: log_l minus the gamma1 prior penalty,
+      chi2 135.4) and nautilus_mean / _mean_chi2; n_live 2000, n_eff 10000,
+      jax-vectorised likelihood (~26 h on 20 cores: ~2 logL/s, 58 bounds, 185k
+      likelihood calls; the run's .h5 checkpoint lives next to the npz). MINUIT ->
+      best fit, Hesse covariance, chi2 (two seeded Migrad passes, --passes 2; pass 1
+      saved as csmf_fit_pass1.npz), chi2 134.65 in ~15 min.
       The cost is the f_h / f_s concentration rescaling (Dvornik+23 eq. 15): the NFW
       Fourier transforms depend on two free parameters, so three sici-based u(k|M)
       evaluations on the (1024 k x 200 M) grid per lens bin are redone at every
@@ -129,10 +154,13 @@ outputs:
       An interrupted nautilus run is resumed by exporting CSMF_NAUTILUS_RESUME=<path to
       a copy of its checkpoint> at `lc run` time (Snakemake wipes the output directory
       before re-running, so keep the copy outside it). Recorded mass definition and
-      halo-model kwargs. Paper fiducial: chi2 = 134.7
-      (Delta Sigma 107.6 over 100 points + n_gal 26.1 over 10 bins + prior 1.0) for
-      ndof = 90 as the fitter counts it (Delta Sigma points - 10 free parameters),
-      log M0 = 10.67, log M1 = 11.12, gamma2 = 0.20, sigma_c = 0.25.
+      halo-model kwargs. Paper fiducial (nautilus): medians log M0 = 10.73 +0.08 -0.06,
+      log M1 = 11.19 +0.12 -0.09, gamma2 = 0.18 +0.02 -0.03, sigma_c = 0.248 +- 0.008,
+      f_h = 0.85 +0.11 -0.16, f_s = 0.81 +0.13 -0.24; MAP chi2 = 135.4 (Delta Sigma
+      105.8 over 100 points + n_gal 28.5 over 10 bins + prior 1.1) for ndof = 90 as the
+      fitter counts it (Delta Sigma points - 10 free parameters). MINUIT minimum:
+      chi2 = 134.65 (107.6 + 26.1 + 1.0), log M0 = 10.67, log M1 = 11.12, gamma2 =
+      0.20, f_h = f_s = 1 (at the cap).
     recipe:
       command: >-
         ${{HOD_PYTHON:-python}} src/fit_csmf.py --config {inputs.sample_config}
@@ -153,43 +181,51 @@ outputs:
     type: data
     inputs: [csmf_fit, csmf_input_z5_effective, csmf_input_z5_geometric,
              csmf_input_full_geometric, sample_config]
-    decisions: [ngal_zwindow, ngal_area, csmf_optimizer]
+    decisions: [ngal_zwindow, ngal_area, csmf_optimizer, csmf_point_estimate]
     description: |
       aia_vs_meff_relation.npz: rel_logmstar (median log M* of each lens bin) and
-      rel_logmeff (log of the central-weighted effective halo mass of the best-fit
-      halo model in that bin, h^-1 Msun), 10 nodes; interpolated (log-log, linearly
-      extrapolated) to map the IA stellar-mass bins to M_eff.
+      rel_logmeff (log of the central-weighted effective halo mass of the halo model
+      at the chosen point estimate in that bin, h^-1 Msun), 10 nodes; interpolated
+      (log-log, linearly extrapolated) to map the IA stellar-mass bins to M_eff. For
+      a nautilus fit also rel_logmeff_lo / _hi, the 16-84 % interval of log M_eff over
+      1000 importance-weighted posterior draws (0.02-0.05 dex; the x error bars of
+      Fig. 3, not propagated into its broken power-law fit).
     recipe:
       command: >-
         ${{HOD_PYTHON:-python}} src/csmf_meff_relation.py --config {inputs.sample_config}
         --fit-npz {inputs.csmf_fit}/csmf_fit.npz
         --in-dir data/ggl/csmf_input_{decisions.ngal_zwindow}_{decisions.ngal_area}
-        --method {decisions.csmf_optimizer} --samples BGS_RED_GMM_VLIM_SNR --out {output}/aia_vs_meff_relation.npz
+        --method {decisions.csmf_optimizer} --point {decisions.csmf_point_estimate}
+        --n-samples 1000 --seed 42
+        --samples BGS_RED_GMM_VLIM_SNR --out {output}/aia_vs_meff_relation.npz
   - id: chi2_decomposition
     label: "chi2 decomposition of the fit (Delta Sigma / n_gal / prior, per bin)"
     type: metric
     inputs: [csmf_fit, csmf_input_z5_effective, csmf_input_z5_geometric,
              csmf_input_full_geometric, sample_config]
-    decisions: [ngal_zwindow, ngal_area, csmf_rp_min, gamma1_prior, csmf_optimizer]
+    decisions: [ngal_zwindow, ngal_area, csmf_rp_min, gamma1_prior, csmf_optimizer,
+                csmf_point_estimate]
     recipe:
       command: >-
         ${{HOD_PYTHON:-python}} src/decompose_csmf_chi2.py --config {inputs.sample_config}
         --fit-npz {inputs.csmf_fit}/csmf_fit.npz
         --in-dir data/ggl/csmf_input_{decisions.ngal_zwindow}_{decisions.ngal_area}
         --samples BGS_RED_GMM_VLIM_SNR --rp-min 0.{decisions.csmf_rp_min}
-        --gamma1-prior {decisions.gamma1_prior} --method {decisions.csmf_optimizer} > {output}/chi2_decomposition.txt
+        --gamma1-prior {decisions.gamma1_prior} --method {decisions.csmf_optimizer}
+        --point {decisions.csmf_point_estimate} > {output}/chi2_decomposition.txt
   - id: fig_csmf_bestfit
     label: "Fig. B.3: Delta Sigma per bin with the best-fit halo model"
     type: figure
     inputs: [csmf_fit, csmf_input_z5_effective, csmf_input_z5_geometric,
              csmf_input_full_geometric, sample_config]
-    decisions: [ngal_zwindow, ngal_area, csmf_rp_min, csmf_optimizer]
+    decisions: [ngal_zwindow, ngal_area, csmf_rp_min, csmf_optimizer, csmf_point_estimate]
     recipe:
       command: >-
         ${{HOD_PYTHON:-python}} src/plot_csmf_bestfit.py --config {inputs.sample_config}
         --fit-npz {inputs.csmf_fit}/csmf_fit.npz
         --in-dir data/ggl/csmf_input_{decisions.ngal_zwindow}_{decisions.ngal_area}
-        --method {decisions.csmf_optimizer} --samples BGS_RED_GMM_VLIM_SNR --rp-min 0.{decisions.csmf_rp_min} --paper
+        --method {decisions.csmf_optimizer} --point {decisions.csmf_point_estimate}
+        --samples BGS_RED_GMM_VLIM_SNR --rp-min 0.{decisions.csmf_rp_min} --paper
         --out {output}/figB3_deltasigma_csmf_bestfit.png
   - id: fig_shmr
     label: "Fig. B.2: the stellar-to-halo mass relation vs the literature"
@@ -200,3 +236,19 @@ outputs:
       command: >-
         ${{HOD_PYTHON:-python}} src/plot_shmr_appendix.py --fit-npz {inputs.csmf_fit}/csmf_fit.npz
         --method {decisions.csmf_optimizer} --out {output}/figB2_shmr_literature.png
+  - id: table_csmf
+    label: "Table B.4: CSMF parameters (LaTeX)"
+    type: table
+    inputs: [csmf_fit]
+    decisions: [csmf_optimizer, csmf_point_estimate]
+    description: |
+      table_csmf.tex, a complete A&A table environment (label tab:csmf_bestfit):
+      nautilus -> one column per parameter with the marginal median and its 16-84 %
+      interval, one with the point estimate (MAP), and its chi2 in the foot; MINUIT ->
+      a single best fit +- parabolic error column. Errors to one significant figure
+      (two when the leading digit is 1).
+    recipe:
+      command: >-
+        ${{HOD_PYTHON:-python}} src/make_csmf_table.py --fit-npz {inputs.csmf_fit}/csmf_fit.npz
+        --method {decisions.csmf_optimizer} --point {decisions.csmf_point_estimate}
+        --out {output}/table_csmf.tex

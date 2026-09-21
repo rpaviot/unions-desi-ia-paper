@@ -229,6 +229,8 @@ outputs:
     from: csmf.fig_csmf_bestfit
   - id: fig_shmr
     from: csmf.fig_shmr
+  - id: table_csmf
+    from: csmf.table_csmf
 
   # --- paper figures and tables (analyses/paper) -----------------------------------
   - id: fig3_aia_vs_mass

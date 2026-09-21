@@ -1,0 +1,10 @@
+id: minuit
+description: "The fiducial CSMF fit minimised with MINUIT instead of sampled with nautilus (fast cross-check of the mode and of the parabolic errors)"
+decisions:
+  mass_definition: "200m"
+  mass_function: tinker10
+  csmf_rp_min: "5"
+  gamma1_prior: gaussian
+  ngal_anchor: ngal
+  csmf_optimizer: minuit
+  csmf_point_estimate: map
