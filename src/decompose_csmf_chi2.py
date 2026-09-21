@@ -140,7 +140,7 @@ def main():
     print("=" * len(hdr))
     print(f"  recomputed total chi2 = {ds_total:.2f} (DS) + {ng_total:.2f} (ngal) "
           f"+ {prior_pen:.2f} (prior) = {recomputed:.2f}")
-    print(f"  saved minuit chi2     = {tot_saved:.2f}   (ndof={ndof}, "
+    print(f"  saved {args.method} chi2 =  {tot_saved:.2f}   (ndof={ndof}, "
           f"chi2/ndof={tot_saved/ndof:.3f})")
     print(f"  match: {'OK' if abs(recomputed - tot_saved) < 0.5 else 'MISMATCH'} "
           f"(Δ={recomputed - tot_saved:+.3f})")

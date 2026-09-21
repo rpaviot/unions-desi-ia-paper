@@ -100,8 +100,9 @@ def fit_method(fit, method=None):
 
 
 def label_relation(cfg, label, samples, in_name=None, fit_npz=None, in_dir=None, method=None):
-    """(logM*_med, logMeff) from any saved CSMF minuit fit (fit_csmf label, or an
-    explicit ``fit_npz`` path with the csmf-input directory ``in_dir`` it was run on).
+    """(logM*_med, logMeff) from any saved CSMF fit (fit_csmf label, or an explicit
+    ``fit_npz`` path with the csmf-input directory ``in_dir`` it was run on), at the
+    point estimate ``method`` (minuit / nautilus = posterior median / de; auto-detected).
 
     Same machinery as p99_relation but with the fit's own mass bins as built
     (no p99 re-capping -- the S/N samples are already capped at logM*=11.40 by
@@ -126,7 +127,9 @@ def label_relation(cfg, label, samples, in_name=None, fit_npz=None, in_dir=None,
     fitter = build_fitter(cfg, args)
     fitter._initialize_halo_model()
 
-    bf = {str(n): float(v) for n, v in zip(fit["minuit_param_names"], fit["minuit_best_fit"])}
+    m = fit_method(fit, method)
+    bf = {str(n): float(v) for n, v in zip(fit[f"{m}_param_names"], fit[f"{m}_best_fit"])}
+    print(f"[{label}] point estimate: {m}" + (" (posterior median)" if m == "nautilus" else ""))
     fitter._halo_model.set_hod_params({k: bf[k] for k in CSMF_KEYS})
     fitter._halo_model.update_f(f_h=bf.get("f_h", bf.get("f_c", 1.0)), f_s=bf.get("f_s", 1.0))
 
