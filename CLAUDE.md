@@ -59,6 +59,13 @@ Operating `lc run` under SLURM (learned 2026-09-18/19):
   `/n09data/rpaviot/DESIxUnions/ggl/csmf_fit/paper_dir_ckpt/csmf_nautilus_872393_done/csmf_fit.npz.h5`.
 - One `lc run` per project at a time (exclusive run lock): chain jobs with
   `--dependency=afterany:<jobid>`.
+- Snakemake launches independent rules concurrently and each HOD / IA python spawns ~20
+  OpenBLAS + XLA threads; on a node shared with other jobs of the same user the default
+  per-user thread limit (RLIMIT_NPROC 1280) ran out and four scripts died at import
+  (OpenBLAS `pthread_create failed`, exit -2; run 874068). `lc_run.slurm` raises the soft
+  limit to the hard one. The IA fits are effectively single-threaded, so
+  `--cpus-per-task=14 --mem=64G` (sbatch flags override the script's `#SBATCH` lines)
+  is enough for the baseline chain and backfills much sooner than 20 cores / 110 GB.
 - **A commit invalidates every materialised output for Snakemake** (not for `lc status`):
   the rule `params` dict carries `git_sha` (and `lc_version`), and lc runs Snakemake with
   `--rerun-triggers code,input,mtime,params`, so after any new commit the next `lc run`
@@ -168,6 +175,22 @@ Delta Sigma + 28.5 n_gal + 1.1 prior; median chi2 140.8; mean chi2 150 (skewed
 posterior -- never call the mean a best fit); MAP vs MINUIT minimum within 0.4 sigma
 (chi2 134.65); f_h = 0.85 +0.11 -0.16, f_s = 0.81 +0.13 -0.24 (MINUIT rails both at 1).
 Fig. B.2 is unchanged (already the marginal median curve + 68 % band for nautilus).
+
+## Validation of the release directory (2026-09-21, runs 874103 baseline / 874104 csmf_minuit)
+
+`scripts/compare_with_reference.py`: all 39 IA fits (30 NLA multipoles, 5 projected, 4
+TATT) within 0.02 sigma of the production `nautilus_split_*_zeff-pair` trees, chi2 equal
+to 2 decimals (nautilus is unseeded: the re-drawn posteriors move the paper's quoted
+numbers in the last digit only, e.g. LRG high-z A_IA 2.94 -> 2.95 +- 0.38); the nautilus
+MAP within 0.41 sigma of the MINUIT minimum (chi2 135.38 vs 134.65), the median within
+1.06 sigma; the csmf_minuit universe reproduces the production p2 fit to 3e-7 relative
+in every parameter and 2e-5 in chi2 (134.653338 vs 134.653315) -- bit-identical when run
+on the same CPU type and thread count as the production fit (872379 on n09 / 20 cores),
+XLA's floating-point reduction order otherwise (874104 on n27 / 14 threads). Figures regenerate (Fig. 3 broken power
+law beta1 = -0.26 +- 0.10, beta2 = 1.61 +- 0.29, log Mb = 12.91 +- 0.04, chi2 28.1/18);
+tables B.1-B.3 regenerate up to last-digit posterior noise; Table B.4 (table_csmf) is
+new and generated. `lc verify --universe baseline` and `--universe csmf_minuit` pass.
+The draft (IA_draft_repo, commit f445603) carries exactly these outputs.
 
 ## Conventions that bite
 
