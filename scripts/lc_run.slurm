@@ -17,6 +17,12 @@
 set -euo pipefail
 module purge
 export TMPDIR=/n09data/rpaviot/tmp
+# Snakemake runs independent rules concurrently and every HOD / IA python spawns ~20
+# OpenBLAS + XLA threads; on a node shared with other jobs of the same user the default
+# per-user thread limit (RLIMIT_NPROC 1280 here) is exhausted and OpenBLAS aborts the
+# scripts at import ("pthread_create failed", exit -2). Raise the soft limit to the hard one.
+ulimit -u "$(ulimit -Hu)" 2>/dev/null || true
+echo "RLIMIT_NPROC soft=$(ulimit -Su) hard=$(ulimit -Hu)"
 export XLA_FLAGS="--xla_cpu_multi_thread_eigen=true"
 export IA_PYTHON=${IA_PYTHON:-$HOME/unions_IA/.venv/bin/python}
 export HOD_PYTHON=${HOD_PYTHON:-$HOME/NRV_HOD/.venv_hod/bin/python}

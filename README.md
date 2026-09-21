@@ -33,7 +33,8 @@ host and pick their interpreter from two variables, default `python`):
 export IA_PYTHON=/path/to/ia/venv/bin/python HOD_PYTHON=/path/to/hod/venv/bin/python
 scripts/env_check.sh                       # both stacks importable?
 lc run --universe baseline                 # everything that can run from the release
-lc run csmf_fit --universe baseline        # one output (two seeded MINUIT passes, ~30 min)
+lc run csmf_fit --universe csmf_minuit     # one output (two seeded MINUIT passes, ~15 min)
+lc run csmf_fit --universe baseline        # the nautilus posterior: ~26 h on 20 cores (see CLAUDE.md)
 lc run nla_multipoles --universe baseline  # 30 nautilus fits, hours: use a compute node
 lc status ; lc verify
 ```
@@ -56,7 +57,9 @@ fix them. The baseline universe is the paper. Root: `ngal_zwindow` (z5 | full),
 `ngal_area` (effective | geometric), `aia_mass_fit_space` (linear | log). csmf:
 `mass_definition` (200m | 200c), `mass_function` (tinker10 | tinker08), `csmf_rp_min`
 (0.5 | 0.1 Mpc/h), `gamma1_prior` (gaussian | flat), `ngal_anchor` (ngal | none),
-`csmf_optimizer` (minuit | nautilus). ia_fits: `z_ia` (pair | clustering), `rmin_gg`
+`csmf_optimizer` (nautilus | minuit; `universes/csmf_minuit.yaml` is the MINUIT cross-check),
+`csmf_point_estimate` (map | median | mean: the single model behind the chi2
+decomposition, Fig. B.3, the M_eff mapping and the best-fit column of Table B.4). ia_fits: `z_ia` (pair | clustering), `rmin_gg`
 (30 | 25), `rmin_gp_nla` (10 | 6), `rmin_gp_tatt` (6 | 10), `a2_prior` (6 | 5 | 3),
 `tatt_bta` (1 | free), `sampler` (nautilus | minuit), `covariance_convention`.
 ia_measurements: `jackknife_tessellation` (random | kmeanspp), `fkp_weights`,

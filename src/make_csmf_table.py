@@ -95,11 +95,17 @@ def main():
             i = idx[key]
             nd = ndigits(min(hi[i] - med[i], med[i] - lo[i]))
             lines.append(f"{sym_tex} & {desc} & {asym(med[i], lo[i], hi[i])} & ${best[i]:.{nd}f}$ \\\\")
+        # The paper's chi2 (Eq. C.1) has no prior term: -2 log L at the point. Saved for
+        # the MAP (nautilus_map_log_l); for the median / mean fall back to the objective.
+        chi2_data = (-2.0 * float(d["nautilus_map_log_l"])
+                     if args.point == "map" and "nautilus_map_log_l" in d else chi2)
+        what = {"map": "the maximum a posteriori sample of the chain",
+                "mean": "the posterior mean", "median": "the marginal posterior median"}[args.point]
         foot = (r"$M_0$ is in $h^{-2}M_\odot$ and $M_1$ in $h^{-1}M_\odot$ ($M_{200{\rm m}}$). "
-                rf"The {point_short} column is the {point_label.split(' (')[0]} of the chain; "
-                rf"$\chi^2 = {chi2:.1f}$ there (Eq.~\ref{{eq:chi2_csmf}}, "
-                rf"{ndof + len(names)} $\Delta\Sigma$ points and $10$ number densities for "
-                rf"{len(names)} free parameters).")
+                rf"{point_short}: {what}, the best-fit model of Fig.~\ref{{fig:deltasigma_bestfit}}; "
+                rf"$\chi^2 = {chi2_data:.1f}$ there "
+                rf"(Eq.~\ref{{eq:chi2_csmf}}, {ndof + len(names)} $\Delta\Sigma$ points and "
+                rf"$10$ number densities for {len(names)} free parameters).")
     else:
         err_key = f"{m}_errors"
         errs = np.asarray(d[err_key], float) if err_key in d else np.full(len(names), np.nan)

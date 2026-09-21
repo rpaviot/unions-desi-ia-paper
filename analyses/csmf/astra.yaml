@@ -158,9 +158,10 @@ outputs:
       log M1 = 11.19 +0.12 -0.09, gamma2 = 0.18 +0.02 -0.03, sigma_c = 0.248 +- 0.008,
       f_h = 0.85 +0.11 -0.16, f_s = 0.81 +0.13 -0.24; MAP chi2 = 135.4 (Delta Sigma
       105.8 over 100 points + n_gal 28.5 over 10 bins + prior 1.1) for ndof = 90 as the
-      fitter counts it (Delta Sigma points - 10 free parameters). MINUIT minimum:
-      chi2 = 134.65 (107.6 + 26.1 + 1.0), log M0 = 10.67, log M1 = 11.12, gamma2 =
-      0.20, f_h = f_s = 1 (at the cap).
+      fitter counts it (Delta Sigma points - 10 free parameters); the paper's Eq. C.1
+      carries no prior term, so it quotes 134.2 for 100 dof. MINUIT minimum:
+      chi2 = 134.65 (107.6 + 26.1 + 1.0; paper convention 133.7), log M0 = 10.67,
+      log M1 = 11.12, gamma2 = 0.20, f_h = f_s = 1 (at the cap).
     recipe:
       command: >-
         ${{HOD_PYTHON:-python}} src/fit_csmf.py --config {inputs.sample_config}

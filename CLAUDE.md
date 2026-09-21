@@ -45,13 +45,18 @@ Operating `lc run` under SLURM (learned 2026-09-18/19):
   emptied output dirs, then resubmit.
 - Snakemake wipes an output dir before re-running its rule, so an interrupted rule leaves
   an empty dir ("missing") -- and destroys any checkpoint inside it. The nautilus CSMF fit
-  (`csmf_nautilus` universe, ~26 h on 20 cores at ~2 logL/s; the 24 h wall is too short)
+  (the `baseline` fiducial since 2026-09-21; `csmf_minuit` is the MINUIT cross-check;
+  ~26 h on 20 cores at ~2 logL/s, so a 24 h wall is too short)
   checkpoints to `<output>/csmf_fit.npz.h5`; the slowness is the f_h/f_s NFW rescaling
   re-evaluating sici-based u(k|M) per call, not a misconfiguration -- measured 2.1 logL/s
   for both the paper and the July-default halo model). Copy that file OUT of the output dir before
   the job dies and resume with `sbatch --export=ALL,...,CSMF_NAUTILUS_RESUME=<copy>
   --time=48:00:00 scripts/lc_run.slurm` (fit_csmf `--resume-from`, recipe passthrough).
-  Same seed / n_live / `--vectorized` are required for the resume.
+  Same seed / n_live / `--vectorized` are required for the resume. A FINISHED checkpoint
+  resumes in minutes (nautilus returns at once; fit_csmf only recomputes the summary
+  keys), which is how the baseline is re-materialised after a code change without
+  re-sampling: the finished chain is kept at
+  `/n09data/rpaviot/DESIxUnions/ggl/csmf_fit/paper_dir_ckpt/csmf_nautilus_872393_done/csmf_fit.npz.h5`.
 - One `lc run` per project at a time (exclusive run lock): chain jobs with
   `--dependency=afterany:<jobid>`.
 - **A commit invalidates every materialised output for Snakemake** (not for `lc status`):
@@ -145,6 +150,24 @@ the released n_gal_err / Delta Sigma covariance are one draw and re-runs reprodu
 to ~10 %, not bit-for-bit). Reference checks: M_eff relation bit-identical, chi2
 decomposition 134.65 = saved, tables B.1-B.3 byte-identical, LRG z1 MINUIT chi2 20.32 =
 nautilus tree, sample_properties / csmf_input rebuilds bit-identical.
+
+## CSMF fiducial = the nautilus posterior (2026-09-21)
+
+`csmf_optimizer` defaults to nautilus and `csmf_point_estimate` to `map`. fit_csmf saves,
+next to the chain, `nautilus_best_fit` (marginal MEDIAN) / `_lo16` / `_hi84` / `_errors` /
+`_covariance` / `_chi2` (at the median), `nautilus_map` / `_map_chi2` (the chain sample
+maximising log_l MINUS the gamma1 prior penalty -- nautilus's log_l is the likelihood
+alone, the Gaussian prior sits in its Prior object -- i.e. MINUIT's objective) and
+`nautilus_mean` / `_mean_chi2`. `src/csmf_point.py::load_point(fit, method, point)` is the
+one place the downstream scripts read a point estimate from; `--point` on
+decompose_csmf_chi2, plot_csmf_bestfit, csmf_meff_relation (+ `--n-samples 1000`: 16-84 %
+band of log M_eff per bin from posterior draws, drawn as x error bars on Fig. 3 and not
+propagated into its broken power-law fit) and make_csmf_table (Table B.4: median with
+16-84 % + MAP column, chi2 at the MAP in the foot). Numbers: MAP chi2 135.4 = 105.8
+Delta Sigma + 28.5 n_gal + 1.1 prior; median chi2 140.8; mean chi2 150 (skewed
+posterior -- never call the mean a best fit); MAP vs MINUIT minimum within 0.4 sigma
+(chi2 134.65); f_h = 0.85 +0.11 -0.16, f_s = 0.81 +0.13 -0.24 (MINUIT rails both at 1).
+Fig. B.2 is unchanged (already the marginal median curve + 68 % band for nautilus).
 
 ## Conventions that bite
 
