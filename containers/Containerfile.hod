@@ -1,5 +1,5 @@
 # HOD stack (HOD_PYTHON): the CSMF halo-model fit of analyses/csmf.
-#   HOD_NRV (github.com/rpaviot/NRV_HOD, tag unions-desi-ia-paper = ed475bb, editable as
+#   HOD_NRV (github.com/rpaviot/NRV_HOD, public main @ 8145e2e, editable as
 #   `nrvpy`) with jax, the Dark Emulator (beta^NL non-linear halo bias), pyccl, iminuit and
 #   nautilus. Kept separate from the IA stack because of the jax / dark_emulator pins.
 # Local equivalent on the analysis cluster: ~/NRV_HOD/.venv_hod (Python 3.12.8, jax 0.10.1,
@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir "numpy==2.4.6" "scipy==1.17.1" "pandas==3.0.3" \
         "iminuit>=2.32" "nautilus-sampler==1.0.6" "dark_emulator==1.1.2" \
         "matplotlib>=3.10" "pyyaml>=6.0" "h5py>=3.13" "scikit-learn>=1.6" \
     && pip install --no-cache-dir \
-        "git+https://github.com/rpaviot/NRV_HOD.git@unions-desi-ia-paper"
+        "git+https://github.com/rpaviot/NRV_HOD.git@8145e2e41fb094dd10f679ceb83c5e5ed1cf3cad"
 
 # Only the code and its configuration go into the image: lc content-addresses the
 # image from the COPY sources and folds that into every output's code_version, so

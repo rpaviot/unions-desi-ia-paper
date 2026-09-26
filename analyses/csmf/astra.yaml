@@ -1,7 +1,7 @@
 # Sub-analysis: CSMF halo-model fit of Delta Sigma + n_gal -> SHMR -> M_eff relation
 #
 # Re-runnable from the released CSMF inputs (data/ggl/csmf_input_*) with the HOD_NRV
-# package (github.com/rpaviot/NRV_HOD @ unions-desi-ia-paper) in its own environment:
+# package (github.com/rpaviot/NRV_HOD, public main @ 8145e2e) in its own environment:
 # set HOD_PYTHON to that interpreter.
 
 version: "0.0.14"

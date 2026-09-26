@@ -104,7 +104,7 @@ def main():
     npts_total = 0
     rows = []
     for i, mb in enumerate(fitter.mass_bins):
-        uid = (mb.sample_type.value, mb.massbin_id)
+        uid = (mb.sample, mb.massbin_id)
         rp_cut, ds_data, cov, mask = fitter._apply_scale_cuts(mb)
         ds_model = ds_dict[uid][mask]
         residual = ds_data - ds_model

@@ -117,7 +117,7 @@ def main():
     # via the fitter's own scale cut so the mask matches the fit exactly.
     cov_chi2 = {}
     for mb in fitter.mass_bins:
-        uid = (mb.sample_type.value, mb.massbin_id)
+        uid = (mb.sample, mb.massbin_id)
         _, ds_data, cov, mask = fitter._apply_scale_cuts(mb)
         res = ds_data - preds[uid]["delta_sigma_model"][mask]
         try:

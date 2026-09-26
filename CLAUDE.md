@@ -25,7 +25,7 @@ environment variables (default `python`):
 | variable | what it must provide | local value |
 |---|---|---|
 | `IA_PYTHON` | ia2pt (github.com/rpaviot/IA2pt), pyccl 3.3 + camb, fast-pt, iminuit, nautilus, treecorr, pycorr, dsigma 1.2, healpy, pyarrow; cucount 0.2.7 + lsstypes (GitHub) for the GPU pair counts | `~/unions_IA/.venv/bin/python` |
-| `HOD_PYTHON` | HOD_NRV (github.com/rpaviot/NRV_HOD @ tag `unions-desi-ia-paper`, editable as `nrvpy`), jax, dark_emulator, iminuit, nautilus, pyccl | `~/NRV_HOD/.venv_hod/bin/python` |
+| `HOD_PYTHON` | HOD_NRV (github.com/rpaviot/NRV_HOD, public `main` @ 8145e2e, editable as `nrvpy`), jax, dark_emulator, iminuit, nautilus, pyccl | `~/NRV_HOD/.venv_hod/bin/python` |
 
 `export IA_PYTHON=... HOD_PYTHON=...` before `lc run`; `scripts/env_check.sh` checks both.
 `requirements.txt` + `Containerfile` (IA) and `containers/Containerfile.hod` document the

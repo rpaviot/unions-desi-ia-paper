@@ -27,7 +27,7 @@ host and pick their interpreter from two variables, default `python`):
 | variable | stack | build |
 |---|---|---|
 | `IA_PYTHON` | ia2pt, pyccl, fast-pt, iminuit, nautilus, treecorr, pycorr, dsigma, healpy; cucount + lsstypes for the GPU pair counts | `requirements.txt` / `Containerfile` |
-| `HOD_PYTHON` | HOD_NRV @ `unions-desi-ia-paper`, jax, Dark Emulator | `containers/Containerfile.hod` |
+| `HOD_PYTHON` | HOD_NRV @ `main` (8145e2e), jax, Dark Emulator | `containers/Containerfile.hod` |
 
 ```
 export IA_PYTHON=/path/to/ia/venv/bin/python HOD_PYTHON=/path/to/hod/venv/bin/python
@@ -78,7 +78,7 @@ ia_measurements: `jackknife_tessellation` (random | kmeanspp), `fkp_weights`,
 
 - [ia2pt](https://github.com/rpaviot/IA2pt) 0.2.0 -- IA two-point model (NLA / TATT), likelihood,
   samplers, Gaussian covariance; [docs](https://ia2pt.readthedocs.io/en/latest/).
-- [HOD_NRV](https://github.com/rpaviot/NRV_HOD) tag `unions-desi-ia-paper` -- CSMF halo model and fitter.
+- [HOD_NRV](https://github.com/rpaviot/NRV_HOD) public `main` @ `8145e2e` -- CSMF halo model and fitter.
 - [cucount](https://github.com/adematti/cucount) / [lsstypes](https://github.com/adematti/lsstypes) -- GPU pair counts with the native split jackknife (A. de Mattia).
 - DESI DR1 LSS catalogues and FastSpecFit VAC (DESI Collaboration 2025); UNIONS ShapePipe v1.6.9 (proprietary).
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fit the analytical CSMF HOD to the measured ΔΣ profiles.
 
-Uses ``HOD_NRV.HOD_analytical.sampler.CSMFFitter`` (develop branch, NRV venv) to
+Uses ``HOD_NRV.HOD_analytical.sampler.CSMFFitter`` (public main, NRV venv) to
 jointly constrain the stellar-to-halo mass relation of the red lenses from their
 galaxy-galaxy lensing signal. Each (sample, mass bin) contributes one ΔΣ(r_p)
 profile at its own effective redshift and stellar-mass window; the per-bin
